@@ -1,5 +1,7 @@
 ---
 // src/layouts/Layout.astro
+import '../styles/globals.css'; // <-- This is the new, crucial line
+
 interface Props {
   title: string;
 }
@@ -17,8 +19,6 @@ const { title } = Astro.props;
     <title>{title}</title>
     <meta name="description" content="Official website of PeDitX (PeDram Alemahmoud پدرام آل محمود), a leading Iranian artist, musician (Rap/Metal), developer, YouTuber, and streamer. Discover his projects, music, and videos.">
     <meta name="keywords" content="PeDitX, Pedram, Iranian YouTuber, Iranian streamer, Iranian celebrity, Iranian artist, rapper, metal singer, music producer, Peditx them, ezpasswall, PeditxOS, musician, developer, youtuber, actor">
-    
-    <!-- The old <script src="https://cdn.tailwindcss.com"></script> has been REMOVED -->
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -120,3 +120,4 @@ const { title } = Astro.props;
     <slot />
 </body>
 </html>
+
