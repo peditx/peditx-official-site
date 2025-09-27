@@ -10,7 +10,6 @@
   <script>
     CMS.init({
       config: {
-        // Your CMS configuration goes here
         backend: {
           name: 'github',
           repo: 'peditx/peditx-official-site',
@@ -21,15 +20,90 @@
         media_folder: 'public/uploads',
         public_folder: '/uploads',
         collections: [
-          // Your collection definitions go here
+          {
+            name: 'profile',
+            label: 'Profile & Main Info',
+            files: [
+              {
+                label: 'Profile Data',
+                name: 'profile_data',
+                file: 'public/profile.json',
+                fields: [
+                  {
+                    label: 'Profile Info',
+                    name: 'profile',
+                    widget: 'object',
+                    fields: [
+                      { label: 'Name', name: 'name', widget: 'string' },
+                      { label: 'Tagline', name: 'tagline', widget: 'string' },
+                      { label: 'Image URL', name: 'imageUrl', widget: 'string' },
+                      { label: 'Biography', name: 'bio', widget: 'markdown' }
+                    ]
+                  },
+                  { label: 'SoundCloud Playlist URL', name: 'soundcloudPlaylistUrl', widget: 'string' }
+                ]
+              }
+            ]
+          },
+          {
+            name: 'links',
+            label: 'Social Links',
+            folder: 'src/content/links',
+            create: true,
+            slug: '{{name}}',
+            fields: [
+              { label: 'Name', name: 'name', widget: 'string' },
+              { label: 'URL', name: 'url', widget: 'string' },
+              { label: 'SVG Icon Code', name: 'icon', widget: 'text' }
+            ]
+          },
+          {
+            name: 'projects',
+            label: 'Projects',
+            folder: 'src/content/projects',
+            create: true,
+            slug: '{{name}}',
+            fields: [
+              { label: 'Project Name', name: 'name', widget: 'string' },
+              { label: 'Description', name: 'description', widget: 'string' },
+              { label: 'Icon URL', name: 'iconUrl', widget: 'string' },
+              { label: 'URL', name: 'url', widget: 'string' }
+            ]
+          },
+          {
+            name: 'videos',
+            label: 'Videos',
+            folder: 'src/content/videos',
+            create: true,
+            slug: '{{title}}',
+            fields: [
+              { label: 'Title', name: 'title', widget: 'string' },
+              { label: 'YouTube Video ID', name: 'videoId', widget: 'string' },
+              { label: 'Thumbnail URL', name: 'thumbnailUrl', widget: 'string' }
+            ]
+          },
+          {
+            name: 'blog',
+            label: 'Blog',
+            folder: 'src/content/blog',
+            create: true,
+            slug: '{{year}}-{{month}}-{{day}}-{{slug}}',
+            fields: [
+              { label: 'Title', name: 'title', widget: 'string' },
+              { label: 'Publish Date', name: 'pubDate', widget: 'datetime' },
+              { label: 'Description', name: 'description', widget: 'string' },
+              { label: 'Author', name: 'author', widget: 'string', default: 'PeDitX' },
+              { label: 'Body', name: 'body', widget: 'markdown', required: true, hint: 'Main blog content goes here', default: '' }
+            ]
+          }
         ],
         publish_mode: 'simple',
         slug: {
           encoding: 'unicode',
           clean_accents: false,
           sanitize_replacement: '-',
-        },
-      },
+        }
+      }
     });
   </script>
 </body>
