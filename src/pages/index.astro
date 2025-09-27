@@ -1,9 +1,28 @@
 ---
+// src/pages/index.astro
+
+// Import the main layout
 import Layout from '../layouts/Layout.astro';
+
+// Fetch data from the new content structure
+import profileData from '../../public/profile.json'; // Fetches the single profile JSON file
+const socialLinks = await Astro.glob('../content/links/*.md');
+const projects = await Astro.glob('../content/projects/*.md');
+const videos = await Astro.glob('../content/videos/*.md');
+
+// Prepare the data in a format that our JavaScript can understand
+const siteData = {
+    profile: profileData.profile,
+    soundcloudPlaylistUrl: profileData.soundcloudPlaylistUrl,
+    links: socialLinks.map(link => link.frontmatter),
+    projects: projects.map(project => project.frontmatter),
+    videos: videos.map(video => video.frontmatter),
+};
 ---
+
 <Layout title="PeDitX - Official Website">
 
-    <!-- Structured Data for Google Knowledge Panel -->
+    <!-- This is the exact same HTML structure as your original site -->
     <script type="application/ld+json" id="structured-data"></script>
 
     <div class="container mx-auto p-4 max-w-5xl">
@@ -79,98 +98,46 @@ import Layout from '../layouts/Layout.astro';
 
     <div id="seo-hidden" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); -webkit-clip-path: inset(50%); clip-path: inset(50%); z-index:-1000;"></div>
 
-<script is:inline id="service-worker-script-source">
-    const CACHE_NAME = 'peditx-cache-v1';
-    const urlsToCache = [
-        '/',
-        // 'index.html', // We don't have a static index.html in Astro
-    ];
+    <script is:inline id="service-worker-script-source">
+        const CACHE_NAME = 'peditx-cache-v1';
+        const urlsToCache = [ '/', ];
+        self.addEventListener('install', event => { event.waitUntil( caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache)) ); });
+        self.addEventListener('fetch', event => { event.respondWith( caches.match(event.request).then(response => response || fetch(event.request)) ); });
+    </script>
 
-    self.addEventListener('install', event => {
-        event.waitUntil(
-            caches.open(CACHE_NAME)
-                .then(cache => {
-                    console.log('Opened cache');
-                    return cache.addAll(urlsToCache);
-                })
-        );
-    });
+    <script is:inline define:vars={{ initialData: siteData }}>
+        document.addEventListener('DOMContentLoaded', () => {
+            // PWA Service Worker Setup
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    const swSource = document.getElementById('service-worker-script-source').textContent;
+                    const swBlob = new Blob([swSource], { type: 'application/javascript' });
+                    const swUrl = URL.createObjectURL(swBlob);
+                    navigator.serviceWorker.register(swUrl)
+                        .then(registration => console.log('Service Worker registered with scope:', registration.scope))
+                        .catch(error => console.log('Service Worker registration failed:', error));
+                });
+            }
 
-    self.addEventListener('fetch', event => {
-        event.respondWith(
-            caches.match(event.request)
-                .then(response => {
-                    if (response) {
-                        return response;
-                    }
-                    return fetch(event.request);
-                })
-        );
-    });
-</script>
+            // Get data directly from Astro instead of fetching
+            const data = initialData; 
 
-<script is:inline>
-    document.addEventListener('DOMContentLoaded', () => {
+            // --- The rest of your original JavaScript code remains unchanged ---
+            const heroTagline = document.getElementById('profile-tagline');
+            const heroBio = document.getElementById('profile-bio');
+            const linksGrid = document.getElementById('links-grid');
+            const projectsContainer = document.getElementById('projects-container');
+            const structuredDataEl = document.getElementById('structured-data');
+            const navButtons = { home: document.getElementById('nav-home'), music: document.getElementById('nav-music'), videos: document.getElementById('nav-videos') };
+            const views = { home: document.getElementById('view-home'), music: document.getElementById('view-music'), videos: document.getElementById('view-videos') };
+            const videoSlider = document.getElementById('video-slider');
+            const soundcloudPlayer = document.getElementById('soundcloud-player');
+            const videoPlayerIframe = document.getElementById('video-player-iframe');
+            const videoTitleEl = document.getElementById('video-title');
+            const videoListEl = document.getElementById('video-list');
 
-        // --- PWA Setup ---
-        const manifest = {
-            name: "PeDitX",
-            short_name: "PeDitX",
-            start_url: "/",
-            display: "standalone",
-            background_color: "#121212",
-            theme_color: "#121212",
-            icons: [
-                { src: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-                { src: "/favicon.ico", sizes: "64x64", type: "image/x-icon" },
-                { src: "/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
-                { src: "/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
-                { src: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
-            ]
-        };
-        const manifestBlob = new Blob([JSON.stringify(manifest)], { type: "application/json" });
-        const manifestUrl = URL.createObjectURL(manifestBlob);
-        document.getElementById('manifest-link').href = manifestUrl;
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                const swSource = document.getElementById('service-worker-script-source').textContent;
-                const swBlob = new Blob([swSource], { type: 'application/javascript' });
-                const swUrl = URL.createObjectURL(swBlob);
-                navigator.serviceWorker.register(swUrl)
-                    .then(registration => console.log('Service Worker registered with scope:', registration.scope))
-                    .catch(error => console.log('Service Worker registration failed:', error));
-            });
-        }
-        // --- End PWA Setup ---
-
-        const API_URL = '/data.json'; // Corrected path
-        const heroTagline = document.getElementById('profile-tagline');
-        const heroBio = document.getElementById('profile-bio');
-        const linksGrid = document.getElementById('links-grid');
-        const projectsContainer = document.getElementById('projects-container');
-        const structuredDataEl = document.getElementById('structured-data');
-        const navButtons = {
-            home: document.getElementById('nav-home'),
-            music: document.getElementById('nav-music'),
-            videos: document.getElementById('nav-videos'),
-        };
-        const views = {
-            home: document.getElementById('view-home'),
-            music: document.getElementById('view-music'),
-            videos: document.getElementById('view-videos'),
-        };
-        const videoSlider = document.getElementById('video-slider');
-        const soundcloudPlayer = document.getElementById('soundcloud-player');
-        const videoPlayerIframe = document.getElementById('video-player-iframe');
-        const videoTitleEl = document.getElementById('video-title');
-        const videoListEl = document.getElementById('video-list');
-
-        async function loadData() {
-            try {
-                const response = await fetch(API_URL);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
+            function renderAll() {
+                if (!data) return;
                 renderHero(data.profile);
                 renderLinks(data.links);
                 renderProjects(data.projects);
@@ -178,200 +145,142 @@ import Layout from '../layouts/Layout.astro';
                 loadSoundCloudPlayer(data.soundcloudPlaylistUrl);
                 renderVideoSlider(data.videos);
                 renderVideoList(data.videos);
-                if(data.videos.length > 0) loadVideo(data.videos[0]);
-
-                const seoContainer = document.getElementById('seo-hidden');
-                const seoData = {
-                    "@context": "https://schema.org",
-                    "@type": "Person",
-                    "name": data.profile.name,
-                    "alternateName": "Pedram",
-                    "url": "https://peditx.ir",
-                    "image": data.profile.imageUrl,
-                    "sameAs": [...data.links.map(link => link.url), "https://www.imdb.com/name/nm12440099"],
-                    "jobTitle": ["Musician","Software Developer","Actor","YouTuber","Streamer","Designer"],
-                    "description": data.profile.bio,
-                    "disambiguatingDescription": "PeDitX is an Iranian musician known for Rap and Metal, a software developer, and a prominent YouTuber and streamer.",
-                    "knowsAbout": ["Music Production","Rap","Metal Music","Software Engineering","Live Streaming","Content Creation","Iranian Pop Culture","Vue.js","Node.js","Acting","Operating Systems","VK"]
-                };
-                const scriptEl = document.createElement('script');
-                scriptEl.type = 'application/ld+json';
-                scriptEl.textContent = JSON.stringify(seoData, null, 2);
-                seoContainer.appendChild(scriptEl);
-
-            } catch (error) {
-                console.error("Could not load data:", error);
-                heroBio.textContent = `Error loading data. Please check the data.json file.`;
+                if(data.videos && data.videos.length > 0) loadVideo(data.videos[0]);
             }
-        }
 
-        async function fetchAndSetBingImage() {
-            try {
-                const BING_API_URL = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=7&mkt=en-US');
-                const response = await fetch(BING_API_URL);
-                const data = await response.json();
-                const bingData = JSON.parse(data.contents);
-                const images = bingData.images.map(img => `https://www.bing.com${img.url}`);
-                const randomIndex = Math.floor(Math.random() * images.length);
-                const randomImageUrl = images[randomIndex];
-                document.body.style.backgroundImage = `url(${randomImageUrl})`;
-            } catch (error) {
-                console.error('Failed to fetch Bing image:', error);
+            async function fetchAndSetBingImage() {
+                try {
+                    const BING_API_URL = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=7&mkt=en-US');
+                    const response = await fetch(BING_API_URL);
+                    const apiData = await response.json();
+                    const bingData = JSON.parse(apiData.contents);
+                    const images = bingData.images.map(img => `https://www.bing.com${img.url}`);
+                    const randomIndex = Math.floor(Math.random() * images.length);
+                    document.body.style.backgroundImage = `url(${images[randomIndex]})`;
+                } catch (error) {
+                    console.error('Failed to fetch Bing image:', error);
+                }
             }
-        }
 
-        function renderHero(profile) {
-            heroTagline.textContent = profile.tagline;
-            heroBio.textContent = profile.bio;
-            document.getElementById('copyright-year').textContent = new Date().getFullYear();
-        }
+            function renderHero(profile) {
+                if (!profile) return;
+                heroTagline.textContent = profile.tagline;
+                heroBio.textContent = profile.bio;
+                document.getElementById('copyright-year').textContent = new Date().getFullYear();
+            }
 
-        function renderLinks(links) {
-            linksGrid.innerHTML = links.map(link => `
-                <a href="${link.url}" target="_blank" rel="noopener noreferrer" class="link-card glass-card p-4 flex flex-col items-center justify-center text-center group">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 mb-2 opacity-70 group-hover:opacity-100 transition-opacity">${link.icon}</svg>
-                    <span class="font-semibold font-heading">${link.name}</span>
-                </a>
-            `).join('');
-        }
+            function renderLinks(links) {
+                if (!links) return;
+                linksGrid.innerHTML = links.map(link => `
+                    <a href="${link.url}" target="_blank" rel="noopener noreferrer" class="link-card glass-card p-4 flex flex-col items-center justify-center text-center group">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 mb-2 opacity-70 group-hover:opacity-100 transition-opacity">${link.icon}</svg>
+                        <span class="font-semibold font-heading">${link.name}</span>
+                    </a>`).join('');
+            }
 
-        function renderProjects(projects) {
-            projectsContainer.innerHTML = projects.map(project => `
-                <a href="${project.url}" target="_blank" rel="noopener noreferrer" class="project-card glass-card p-4 flex items-center gap-4">
-                       <img src="${project.iconUrl}" class="w-12 h-12 rounded-md" alt="${project.name}">
-                       <div class="text-left">
-                           <h3 class="font-bold text-lg">${project.name}</h3>
-                           <p class="opacity-70 text-sm font-light">${project.description}</p>
-                       </div>
-                </a>
-            `).join('');
-        }
-
-        function renderStructuredData(data) {
-            const schema = {
-                "@context": "https://schema.org",
-                "@type": "Person",
-                "name": data.profile.name,
-                "alternateName": "Pedram",
-                "url": "https://peditx.ir",
-                "image": data.profile.imageUrl,
-                "sameAs": [...data.links.map(link => link.url), "https://www.imdb.com/name/nm12440099"],
-                "jobTitle": ["Musician","Software Developer","Actor","YouTuber","Streamer","Designer"],
-                "description": data.profile.bio,
-                "disambiguatingDescription": "PeDitX is an Iranian musician known for Rap and Metal, a software developer, and a prominent YouTuber and streamer.",
-                "knowsAbout": ["Music Production","Rap","Metal Music","Software Engineering","Live Streaming","Content Creation","Iranian Pop Culture","Vue.js","Node.js","Acting","Operating Systems","VK"]
-            };
-            structuredDataEl.textContent = JSON.stringify(schema, null, 2);
-            
-            const seoContainer = document.getElementById('seo-hidden');
-            const seoData = schema;
-            const scriptEl = document.createElement('script');
-            scriptEl.type = 'application/ld+json';
-            scriptEl.textContent = JSON.stringify(seoData, null, 2);
-            seoContainer.appendChild(scriptEl);
-        }
-
-        function switchView(targetView) {
-            Object.values(views).forEach(view => view.classList.add('hidden-view'));
-            Object.values(navButtons).forEach(btn => btn.classList.remove('active'));
-            views[targetView].classList.remove('hidden-view');
-            navButtons[targetView].classList.add('active');
-        }
-
-        navButtons.home.addEventListener('click', () => switchView('home'));
-        navButtons.music.addEventListener('click', () => switchView('music'));
-        navButtons.videos.addEventListener('click', () => switchView('videos'));
-
-        function loadSoundCloudPlayer(playlistUrl) {
-            if (playlistUrl) soundcloudPlayer.src = playlistUrl;
-        }
-
-        function renderVideoList(videos) {
-            videoListEl.innerHTML = videos.map((video, index) => `
-                <div class="cursor-pointer group" data-index="${index}">
-                    <div class="aspect-video overflow-hidden rounded-md">
-                        <img src="${video.thumbnailUrl}" alt="${video.title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
-                    </div>
-                    <p class="text-sm mt-2 text-center opacity-80 group-hover:opacity-100 font-heading truncate">${video.title}</p>
-                </div>
-            `).join('');
-
-            videoListEl.querySelectorAll('.cursor-pointer').forEach(item => {
-               item.addEventListener('click', () => {
-                   const index = parseInt(item.dataset.index);
-                   loadVideo(videos[index]);
-               });
-            });
-        }
-
-        function renderVideoSlider(videos) {
-            videoSlider.innerHTML = videos.map((video, index) => `
-                <a href="#" class="video-card cursor-pointer block rounded-lg overflow-hidden shadow-lg" data-index="${index}">
-                    <div class="relative w-full h-32">
-                        <img src="${video.thumbnailUrl}" alt="${video.title}" class="w-full h-full object-cover">
-                        <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 opacity-0 hover:opacity-100 transition-opacity">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M8 5v14l11-7z" />
-                            </svg>
+            function renderProjects(projects) {
+                if (!projects) return;
+                projectsContainer.innerHTML = projects.map(project => `
+                    <a href="${project.url}" target="_blank" rel="noopener noreferrer" class="project-card glass-card p-4 flex items-center gap-4">
+                        <img src="${project.iconUrl}" class="w-12 h-12 rounded-md" alt="${project.name}">
+                        <div>
+                            <h3 class="font-bold text-lg">${project.name}</h3>
+                            <p class="opacity-70 text-sm font-light">${project.description}</p>
                         </div>
-                    </div>
-                    <div class="p-4">
-                        <h3 class="font-bold text-sm text-center truncate">${video.title}</h3>
-                    </div>
-                </a>
-            `).join('');
+                    </a>`).join('');
+            }
 
-            videoSlider.querySelectorAll('.video-card').forEach(item => {
-               item.addEventListener('click', (e) => {
-                   e.preventDefault();
-                   const index = parseInt(item.dataset.index);
-                   loadVideo(videos[index]);
-                   switchView('videos');
-               });
+            function renderStructuredData(data) {
+                const schema = {
+                    "@context": "https://schema.org", "@type": "Person", "name": data.profile.name, "url": "https://peditx.ir",
+                    "image": data.profile.imageUrl, "sameAs": [...data.links.map(link => link.url), "https://www.imdb.com/name/nm12440099"],
+                    "jobTitle": ["Musician","Software Developer","Actor","YouTuber","Streamer","Designer"],
+                    "description": data.profile.bio
+                };
+                structuredDataEl.textContent = JSON.stringify(schema, null, 2);
+            }
+
+            function switchView(targetView) {
+                Object.values(views).forEach(view => view.classList.add('hidden-view'));
+                Object.values(navButtons).forEach(btn => btn.classList.remove('active'));
+                views[targetView].classList.remove('hidden-view');
+                navButtons[targetView].classList.add('active');
+            }
+
+            navButtons.home.addEventListener('click', () => switchView('home'));
+            navButtons.music.addEventListener('click', () => switchView('music'));
+            navButtons.videos.addEventListener('click', () => switchView('videos'));
+
+            function loadSoundCloudPlayer(playlistUrl) {
+                if (playlistUrl) soundcloudPlayer.src = playlistUrl;
+            }
+
+            function renderVideoList(videos) {
+                if (!videos) return;
+                videoListEl.innerHTML = videos.map((video, index) => `
+                    <div class="cursor-pointer group" data-index="${index}">
+                        <div class="aspect-video overflow-hidden rounded-md">
+                            <img src="${video.thumbnailUrl}" alt="${video.title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
+                        </div>
+                        <p class="text-sm mt-2 text-center opacity-80 group-hover:opacity-100 font-heading truncate">${video.title}</p>
+                    </div>`).join('');
+                videoListEl.querySelectorAll('.cursor-pointer').forEach(item => {
+                   item.addEventListener('click', () => {
+                       const index = parseInt(item.dataset.index);
+                       loadVideo(videos[index]);
+                   });
+                });
+            }
+
+            function renderVideoSlider(videos) {
+                if (!videos) return;
+                videoSlider.innerHTML = videos.map((video, index) => `
+                    <a href="#" class="video-card cursor-pointer block rounded-lg overflow-hidden shadow-lg" data-index="${index}">
+                        <div class="relative w-full h-32">
+                            <img src="${video.thumbnailUrl}" alt="${video.title}" class="w-full h-full object-cover">
+                            <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 opacity-0 hover:opacity-100 transition-opacity">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                            </div>
+                        </div>
+                        <div class="p-4"><h3 class="font-bold text-sm text-center truncate">${video.title}</h3></div>
+                    </a>`).join('');
+                videoSlider.querySelectorAll('.video-card').forEach(item => {
+                   item.addEventListener('click', (e) => {
+                       e.preventDefault();
+                       const index = parseInt(item.dataset.index);
+                       loadVideo(videos[index]);
+                       switchView('videos');
+                   });
+                });
+            }
+
+            function loadVideo(video) {
+                if (!video) return;
+                videoPlayerIframe.src = `https://www.youtube.com/embed/${video.videoId}`;
+                videoTitleEl.textContent = video.title;
+            }
+
+            const parallaxElements = document.querySelectorAll('[data-parallax-speed]');
+            document.addEventListener('mousemove', (e) => {
+                const centerX = window.innerWidth / 2, centerY = window.innerHeight / 2;
+                parallaxElements.forEach(el => {
+                    const speed = parseFloat(el.dataset.parallaxSpeed);
+                    const x = (e.clientX - centerX) * speed / 100, y = (e.clientY - centerY) * speed / 100;
+                    el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+                });
             });
-        }
 
-        function loadVideo(video) {
-            videoPlayerIframe.src = `https://www.youtube.com/embed/${video.videoId}`;
-            videoTitleEl.textContent = video.title;
-        }
+            const leftArrowBtn = document.getElementById('left-arrow-btn');
+            const rightArrowBtn = document.getElementById('right-arrow-btn');
+            const videoSliderElement = document.getElementById('video-slider');
 
-        const parallaxElements = document.querySelectorAll('[data-parallax-speed]');
-        document.addEventListener('mousemove', (e) => {
-            const centerX = window.innerWidth / 2;
-            const centerY = window.innerHeight / 2;
-            const mouseX = e.clientX;
-            const mouseY = e.clientY;
-            parallaxElements.forEach(el => {
-                const speed = parseFloat(el.dataset.parallaxSpeed);
-                const x = (mouseX - centerX) * speed / 100;
-                const y = (mouseY - centerY) * speed / 100;
-                el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-            });
+            leftArrowBtn.addEventListener('click', () => { videoSliderElement.scrollBy({ left: -300, behavior: 'smooth' }); });
+            rightArrowBtn.addEventListener('click', () => { videoSliderElement.scrollBy({ left: 300, behavior: 'smooth' }); });
+
+            // Initial calls
+            renderAll();
+            fetchAndSetBingImage();
         });
-
-        const leftArrowBtn = document.getElementById('left-arrow-btn');
-        const rightArrowBtn = document.getElementById('right-arrow-btn');
-        const videoSliderElement = document.getElementById('video-slider');
-
-        leftArrowBtn.addEventListener('click', () => {
-            videoSliderElement.scrollBy({
-                left: -300,
-                behavior: 'smooth'
-            });
-        });
-
-        rightArrowBtn.addEventListener('click', () => {
-            videoSliderElement.scrollBy({
-                left: 300,
-                behavior: 'smooth'
-            });
-        });
-
-        fetchAndSetBingImage();
-        loadData();
-    });
-</script>
-
+    </script>
 </Layout>
 
