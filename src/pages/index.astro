@@ -9,6 +9,7 @@ import profileData from '../../public/profile.json'; // Fetches the single profi
 const socialLinks = await Astro.glob('../content/links/*.md');
 const projects = await Astro.glob('../content/projects/*.md');
 const videos = await Astro.glob('../content/videos/*.md');
+const blogPosts = await Astro.glob('../content/blog/*.md'); // <-- This line is now added
 
 // Prepare the data in a format that our JavaScript can understand
 const siteData = {
@@ -66,6 +67,21 @@ const siteData = {
                     <h2 class="text-3xl font-bold text-center mb-6 main-gradient-text">Creations</h2>
                     <div id="projects-container" class="space-y-4"></div>
                 </section>
+
+                <!-- This is the new Blog section -->
+                <section class="mb-12">
+                    <h2 class="text-3xl font-bold text-center mb-6 main-gradient-text">Latest Posts</h2>
+                    <div id="blog-container" class="space-y-4">
+                        {blogPosts.sort((a, b) => new Date(b.frontmatter.pubDate).valueOf() - new Date(a.frontmatter.pubDate).valueOf()).map(post => (
+                            <a href={post.url} class="project-card glass-card p-4 block transition-colors hover:border-gray-400">
+                                <h3 class="font-bold text-lg">{post.frontmatter.title}</h3>
+                                <p class="opacity-70 text-sm font-light mt-1">{post.frontmatter.description}</p>
+                                <p class="opacity-50 text-xs mt-2">{new Date(post.frontmatter.pubDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                            </a>
+                        ))}
+                    </div>
+                </section>
+                <!-- End of new Blog section -->
 
                 <section>
                     <h2 class="text-3xl font-bold text-center mb-6 main-gradient-text">Connect</h2>
