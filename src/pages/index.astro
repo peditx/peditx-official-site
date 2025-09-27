@@ -1,5 +1,8 @@
 ---
 // src/layouts/Layout.astro
+interface Props {
+  title: string;
+}
 const { title } = Astro.props;
 ---
 <!DOCTYPE html>
@@ -12,19 +15,103 @@ const { title } = Astro.props;
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <title>{title}</title>
-    <meta name="description" content="Official website of PeDitX (PeDram Alemahmoud پدرام آل محمود)...">
-    <meta name="keywords" content="PeDitX, Pedram, Iranian YouTuber, Iranian streamer...">
+    <meta name="description" content="Official website of PeDitX (PeDram Alemahmoud پدرام آل محمود), a leading Iranian artist, musician (Rap/Metal), developer, YouTuber, and streamer. Discover his projects, music, and videos.">
+    <meta name="keywords" content="PeDitX, Pedram, Iranian YouTuber, Iranian streamer, Iranian celebrity, Iranian artist, rapper, metal singer, music producer, Peditx them, ezpasswall, PeditxOS, musician, developer, youtuber, actor">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&family=Vazirmatn:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="manifest" id="manifest-link">
-
     <style>
-        /* تمام استایل‌های شما اینجا کپی شده */
-        body { font-family: 'Vazirmatn', 'Roboto', sans-serif; background-color: #121212; /* ... بقیه استایل‌ها */ }
-        h1, h2, h3, .nav-btn, .font-heading { font-family: 'Orbitron', 'Vazirmatn', sans-serif; /* ... بقیه استایل‌ها */ }
-        /* ... تمام استایل‌های دیگر شما تا انتهای تگ style */
+        body {
+            font-family: 'Vazirmatn', 'Roboto', sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            transition: background-image 1s ease-in-out;
+            perspective: 1000px;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(2px);
+            z-index: -1;
+        }
+        h1, h2, h3, .nav-btn, .font-heading {
+            font-family: 'Orbitron', 'Vazirmatn', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .main-gradient-text {
+            background: linear-gradient(90deg, #9a9a9a, #ffffff, #9a9a9a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            transition: all 0.3s ease;
+        }
+        .glass-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .link-card:hover, .project-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+        .nav-btn {
+            background: transparent;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 0;
+            padding: 0.5rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+        .nav-btn.active, .nav-btn:hover {
+            background-color: #ffffff;
+            color: #121212;
+            border-color: #ffffff;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+        .hidden-view { display: none; }
+        #hero-header { position: relative; z-index: 10; }
+        .logo-container {
+            max-width: 90%;
+            height: auto;
+            max-height: 350px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .logo-img { max-width: 100%; height: auto; display: block; }
+        .link-card:hover svg { filter: none; }
+        .video-slider { -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .video-slider::-webkit-scrollbar { display: none; }
+        .video-card {
+            min-width: 250px;
+            flex-shrink: 0;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .video-card:hover {
+            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
     </style>
 </head>
 <body class="antialiased">
