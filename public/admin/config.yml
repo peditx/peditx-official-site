@@ -3,7 +3,7 @@ backend:
   repo: peditx/peditx-official-site      # Your repository name
   branch: main
   auth_type: implicit
-  app_id: YOUR_GITHUB_OAUTH_APP_CLIENT_ID # Replace with your GitHub OAuth App Client ID
+  app_id: Ov23liMQ36VXRPwraTVC # Replace with your GitHub OAuth App Client ID
 
 # Where media files (like images) will be stored
 media_folder: "public/uploads"
