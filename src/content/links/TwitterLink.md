@@ -1,0 +1,1 @@
+name: "Twitter" url: "https://twitter.com/@_peditx" icon: "<path d='M18.244 2H21.5l-7.377 8.418L22 22h-6.657l-5.24-6.364L4.69 22H1.431l7.89-9.006L2 2h6.75l4.713 5.816L18.244 2z'></path><polygon points='9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02'></polygon>"
