@@ -5,5 +5,6 @@ import tailwind from "@astrojs/tailwind";
 export default defineConfig({
   site: 'https://codes.peditx.ir',
   output: 'static',
-  integrations: [tailwind()]
+  integrations: [tailwind()],
 });
+
