@@ -12,49 +12,53 @@ public_folder: "/uploads"
 # This is where we define what content is editable
 collections:
   # Collection 1: Manages the single data.json file for the homepage
+  # The structure is now corrected to use "files" which is an array
   - name: "homepage"
     label: "Homepage Content"
-    file: "public/data.json" # Points to your main data file
-    editor:
-      preview: false
-    fields:
-      - label: "Profile Info"
-        name: "profile"
-        widget: "object"
-        fields:
-          - { label: "Name", name: "name", widget: "string" }
-          - { label: "Tagline", name: "tagline", widget: "string" }
-          - { label: "Image URL", name: "imageUrl", widget: "string" }
-          - { label: "Biography", name: "bio", widget: "markdown" }
+    files: # <-- This is the main correction. It must be "files" (plural).
+      - label: "Page Data"
+        name: "data"
+        file: "public/data.json" # The path to the file goes here
+        editor:
+          preview: false
+        fields: # The fields for editing the content of data.json
+          - label: "Profile Info"
+            name: "profile"
+            widget: "object"
+            fields:
+              - { label: "Name", name: "name", widget: "string" }
+              - { label: "Tagline", name: "tagline", widget: "string" }
+              - { label: "Image URL", name: "imageUrl", widget: "string" }
+              - { label: "Biography", name: "bio", widget: "markdown" }
 
-      - { label: "SoundCloud Playlist URL", name: "soundcloudPlaylistUrl", widget: "string" }
-      
-      - label: "Social Links"
-        name: "links"
-        widget: "list"
-        fields:
-          - { label: "Name", name: "name", widget: "string" }
-          - { label: "URL", name: "url", widget: "string" }
-          - { label: "SVG Icon Code", name: "icon", widget: "text" }
-
-      - label: "Projects"
-        name: "projects"
-        widget: "list"
-        fields:
-          - { label: "Project Name", name: "name", widget: "string" }
-          - { label: "Description", name: "description", widget: "string" }
-          - { label: "Icon URL", name: "iconUrl", widget: "string" }
-          - { label: "URL", name: "url", widget: "string" }
+          - { label: "SoundCloud Playlist URL", name: "soundcloudPlaylistUrl", widget: "string" }
           
-      - label: "Videos"
-        name: "videos"
-        widget: "list"
-        fields:
-          - { label: "Title", name: "title", widget: "string" }
-          - { label: "YouTube Video ID", name: "videoId", widget: "string" }
-          - { label: "Thumbnail URL", name: "thumbnailUrl", widget: "string" }
+          - label: "Social Links"
+            name: "links"
+            widget: "list"
+            fields:
+              - { label: "Name", name: "name", widget: "string" }
+              - { label: "URL", name: "url", widget: "string" }
+              - { label: "SVG Icon Code", name: "icon", widget: "text" }
 
-  # Collection 2: Manages blog posts in a new "blog" folder
+          - label: "Projects"
+            name: "projects"
+            widget: "list"
+            fields:
+              - { label: "Project Name", name: "name", widget: "string" }
+              - { label: "Description", name: "description", widget: "string" }
+              - { label: "Icon URL", name: "iconUrl", widget: "string" }
+              - { label: "URL", name: "url", widget: "string" }
+              
+          - label: "Videos"
+            name: "videos"
+            widget: "list"
+            fields:
+              - { label: "Title", name: "title", widget: "string" }
+              - { label: "YouTube Video ID", name: "videoId", widget: "string" }
+              - { label: "Thumbnail URL", name: "thumbnailUrl", widget: "string" }
+
+  # Collection 2: Manages blog posts in a new "blog" folder (This part was already correct)
   - name: "blog"
     label: "Blog"
     folder: "src/content/blog" # A standard place for blog posts in Astro
@@ -71,3 +75,4 @@ collections:
         ], required: false }
       - { label: "Tags", name: "tags", widget: "list", required: false }
       - { label: "Body", name: "body", widget: "markdown" }
+
