@@ -11,28 +11,9 @@
   <title>Content Manager</title>
 </head>
 <body>
-
-  <!-- Load Decap CMS v3.8.3 (stable) -->
   <script src="https://unpkg.com/decap-cms@^3.8.3/dist/decap-cms.js"></script>
-
   <script>
-    // Capture all runtime errors
-    window.addEventListener("error", (e) => {
-      console.log("Global error caught:", e.message, e.filename, e.lineno, e.colno);
-    });
-
-    // Capture unhandled Promise rejections
-    window.addEventListener("unhandledrejection", (e) => {
-      console.log("Unhandled Promise rejection:", e.reason);
-    });
-
-    // Initialize CMS with error catching
-    try {
-      CMS.init({ configUrl: "/admin/config.yml" });
-      console.log("CMS initialized successfully");
-    } catch (err) {
-      console.error("CMS.init error:", err);
-    }
+    CMS.init({ config: { /* your config goes here */ } });
   </script>
 </body>
 </html>
