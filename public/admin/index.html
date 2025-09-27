@@ -1,19 +1,36 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="/favicon.ico" type="image/x-icon">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Content Manager</title>
 </head>
 <body>
   <script src="https://unpkg.com/decap-cms@^3.8.3/dist/decap-cms.js"></script>
   <script>
-    CMS.init({ config: { /* your config goes here */ } });
+    CMS.init({
+      config: {
+        // Your CMS configuration goes here
+        backend: {
+          name: 'github',
+          repo: 'peditx/peditx-official-site',
+          branch: 'main',
+          auth_type: 'implicit',
+          app_id: 'Ov23liMQ36VXRPwraTVC',
+        },
+        media_folder: 'public/uploads',
+        public_folder: '/uploads',
+        collections: [
+          // Your collection definitions go here
+        ],
+        publish_mode: 'simple',
+        slug: {
+          encoding: 'unicode',
+          clean_accents: false,
+          sanitize_replacement: '-',
+        },
+      },
+    });
   </script>
 </body>
 </html>
