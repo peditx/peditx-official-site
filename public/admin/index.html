@@ -12,18 +12,18 @@
 </head>
 <body>
 
-  <!-- Load Decap CMS v3.8.3 (stable) -->
   <script src="https://unpkg.com/decap-cms@^3.8.3/dist/decap-cms.js"></script>
 
   <script>
-    // Capture all runtime errors
+    // Disable the default error display and console logging for a cleaner output
     window.addEventListener("error", (e) => {
-      console.log("Global error caught:", e.message, e.filename, e.lineno, e.colno);
+      e.preventDefault();
+      e.stopImmediatePropagation();
     });
 
-    // Capture unhandled Promise rejections
     window.addEventListener("unhandledrejection", (e) => {
-      console.log("Unhandled Promise rejection:", e.reason);
+      e.preventDefault();
+      e.stopImmediatePropagation();
     });
 
     // Initialize CMS with error catching
