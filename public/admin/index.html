@@ -3,36 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Favicons -->
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Tell Decap CMS where to find the config file -->
+  <link href="/admin/config.yml" type="text/yaml" rel="cms-config-url">
+
   <title>Content Manager</title>
 </head>
 <body>
-
+  <!-- Load Decap CMS -->
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
-
-  <script>
-    // Disable the default error display and console logging for a cleaner output
-    window.addEventListener("error", (e) => {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-    });
-
-    window.addEventListener("unhandledrejection", (e) => {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-    });
-
-    // Initialize CMS with error catching
-    try {
-      CMS.init({ configUrl: "/admin/config.yml" });
-      console.log("CMS initialized successfully");
-    } catch (err) {
-      console.error("CMS.init error:", err);
-    }
-  </script>
 </body>
 </html>
