@@ -46,6 +46,7 @@ collections:
     label: "Projects"
     folder: "src/content/projects"
     create: true
+    allow_reorder: true
     slug: "{{name}}" # Uses the project name for the filename
     fields:
         - { label: "Project Name", name: "name", widget: "string" }
@@ -58,6 +59,7 @@ collections:
     label: "Videos"
     folder: "src/content/videos"
     create: true
+    allow_reorder: true
     slug: "{{title}}" # Uses the video title for the filename
     fields:
         - { label: "Title", name: "title", widget: "string" }
@@ -69,6 +71,7 @@ collections:
     label: "Blog"
     folder: "src/content/blog"
     create: true
+    allow_reorder: true
     slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
     fields:
       - { label: "Title", name: "title", widget: "string" }
