@@ -1,11 +1,12 @@
 #!/bin/sh
 
-# DNS Jumper for LuCI - Installer Script v84.0 (Core Functionality Fixes)
+# DNS Jumper for LuCI - Installer Script v84.1 (Hotfix)
+# - CRITICAL FIX: Added missing 'mkdir -p' for the view directory (/usr/lib/lua/luci/view/dnsjumper) to prevent installation failure on clean systems.
 # - UI: Added "By PeDitX" subtitle below the main header.
-# - CRITICAL FIX: Resolved the backup button functionality by setting the correct href directly during element creation, ensuring the download works on the first click.
+# - CRITICAL FIX: Resolved the backup button functionality.
 # - LOGIC: With the backup fix, the restore functionality is now fully operational.
 
-echo ">>> Installing DNS Jumper (Core Functionality Fixes) - v84.0..."
+echo ">>> Installing DNS Jumper (Hotfix) - v84.1..."
 
 # --- 0. Full Cleanup ---
 echo ">>> Wiping all previous versions for a clean and stable install..."
@@ -318,8 +319,8 @@ function action_get_live_log()
 end
 EOF
 
-# --- 4. Create Self-Contained View File (Backup Fix & Subtitle) ---
-mkdir -p /usr/lib/lua/luci/view
+# --- 4. Create Self-Contained View File (Hotfix) ---
+mkdir -p /usr/lib/lua/luci/view/dnsjumper
 cat > /usr/lib/lua/luci/view/dnsjumper/main.htm << 'EOF'
 <%+header%>
 <div id="dnsjumper-root">
@@ -632,9 +633,9 @@ cat > /usr/lib/lua/luci/view/dnsjumper/main.htm << 'EOF'
                     ...[10, 25, 50].map(size => E('button', { class: `cbi-button ${this.state.itemsPerPage === size ? 'active' : ''}`, 'data-page-size': size }, size))
                 ]),
                 E('div', { class: 'button-group' }, [
-                    E('button', prevAttrs, 'â¹ Prev'),
+                    E('button', prevAttrs, '‹ Prev'),
                     E('span', { class: 'page-info' }, `Page ${this.state.currentPage} of ${this.state.totalPages}`),
-                    E('button', nextAttrs, 'Next âº')
+                    E('button', nextAttrs, 'Next ›')
                 ])
             ]);
         },
@@ -678,7 +679,7 @@ cat > /usr/lib/lua/luci/view/dnsjumper/main.htm << 'EOF'
                 }
 
                 const tr = E('tr', trAttrs, [
-                    E('td', {}, [provider.isStatic ? provider.name : E('div', {style:'display:flex; align-items:center;'}, [E('button', { class: `btn-fav ${provider.favorite ? 'is-fav' : ''}`, 'data-action': 'favorite', 'data-provider': JSON.stringify(provider) }, 'â'), provider.name])]),
+                    E('td', {}, [provider.isStatic ? provider.name : E('div', {style:'display:flex; align-items:center;'}, [E('button', { class: `btn-fav ${provider.favorite ? 'is-fav' : ''}`, 'data-action': 'favorite', 'data-provider': JSON.stringify(provider) }, '★'), provider.name])]),
                     E('td', {}, E('span', {}, [provider.dns1 || '', createIpInfoLink(provider.dns1)])), 
                     E('td', {}, E('span', {}, [provider.dns2 || '', createIpInfoLink(provider.dns2)])),
                     E('td', { id: `ping-${provider.dns1}`.replace(/\./g, '-') }, [pingHTML, E('button', { class: 'cbi-button', 'data-action': 'test', 'data-provider': JSON.stringify(provider), style: 'margin-left:10px;padding:2px 6px;font-size:0.8em;'}, 'Test')]),
@@ -1105,7 +1106,7 @@ EOF
 rm -f /tmp/luci-indexcache
 
 echo ""
-echo ">>> DNS Jumper v84.0 (Core Functionality Fixes) has been installed."
+echo ">>> DNS Jumper v84.1 (Hotfix) has been installed."
 echo ">>> Please hard-refresh your browser (Ctrl+Shift-R) to load the new UI correctly."
 echo ""
 
