@@ -13,10 +13,30 @@
   <!-- Tell Decap CMS where to find the config file -->
   <link href="/admin/config.yml" type="text/yaml" rel="cms-config-url">
 
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#000000">
+
   <title>Content Manager</title>
 </head>
 <body>
   <!-- Load Decap CMS -->
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+
+  <!-- Register Service Worker for PWA -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js').then(
+          function(registration) {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, 
+          function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          }
+        );
+      });
+    }
+  </script>
 </body>
 </html>
