@@ -34,6 +34,7 @@ collections:
     label: "Social Links"
     folder: "src/content/links"
     create: true
+    allow_reorder: true
     slug: "{{name}}" # Uses the link name for the filename
     fields:
       - { label: "Name", name: "name", widget: "string" }
