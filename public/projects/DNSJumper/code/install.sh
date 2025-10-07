@@ -793,7 +793,7 @@ cat > /usr/lib/lua/luci/view/dnsjumper/main.htm << 'EOF'
                     }
                 }
                 else {
-                     switch(id) {
+                    switch(id) {
                         case 'ping-all-btn': this.handlePingAll(button); break; 
                         case 'sort-by-ping-btn': this.handleSortByPing(button); break;
                         case 'toggle-drag-btn': this.state.isDragEnabled = !this.state.isDragEnabled; this.render(); break;
