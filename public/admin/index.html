@@ -1,83 +1,121 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <!-- Favicons -->
-  <link rel="icon" href="/favicon.ico" type="image/x-icon">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Favicons -->
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 
-  <!-- Tell Decap CMS where to find the config file -->
-  <link href="/admin/config.yml" type="text/yaml" rel="cms-config-url">
+  <!-- Tell Decap CMS where to find the config file -->
+  <link href="/admin/config.yml" type="text/yaml" rel="cms-config-url">
 
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#121212">
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#121212">
 
-  <title>Content Manager</title>
+  <title>Content Manager</title>
 
-  <!-- Dark Mode + Mobile Friendly CSS -->
-  <style>
-    /* Dark Mode */
-    body {
-      background-color: #121212;
-      color: #ffffff;
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-    }
+  <!-- Dark Mode + Mobile Friendly CSS -->
+  <style>
+    /* Dark Mode */
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
 
-    /* Mobile Friendly */
-    html, body {
-      width: 100%;
-      height: 100%;
-    }
+    /* Mobile Friendly */
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
 
-    /* Make CMS container flexible */
-    .cms-root, #nc-root {
-      max-width: 100%;
-      padding: 1rem;
-      box-sizing: border-box;
-    }
+    /* Make CMS container flexible */
+    .cms-root, #nc-root {
+      max-width: 100%;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
 
-    a {
-      color: #90caf9; /* لینک‌های روشن روی دارک مود */
-    }
+    a {
+      color: #90caf9; /* لینک‌های روشن روی دارک مود */
+    }
 
-    /* Scrollbar بهتر برای دارک مود */
-    ::-webkit-scrollbar {
-      width: 10px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #1e1e1e;
-    }
-    ::-webkit-scrollbar-thumb {
-      background-color: #444;
-      border-radius: 5px;
-    }
-  </style>
+    /* Scrollbar بهتر برای دارک مود */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1e1e1e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background-color: #444;
+      border-radius: 5px;
+    }
+  </style>
 </head>
 <body>
-  <!-- Load Decap CMS -->
-  <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+  <!-- Load Decap CMS -->
+  <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
 
-  <!-- Register Service Worker for PWA -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js').then(
-          function(registration) {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          }, 
-          function(err) {
-            console.log('ServiceWorker registration failed: ', err);
-          }
-        );
-      });
-    }
-  </script>
+  <!-- Register Service Worker for PWA & Inject Dark Mode Styles -->
+  <script>
+    window.addEventListener('load', function() {
+      // 1. Register Service Worker
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').then(
+          function(registration) {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, 
+          function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          }
+        );
+      }
+
+      // 2. Inject Dark Mode CSS for CMS Admin
+      if (window.CMS) {
+        const css = `
+          :root {
+            --primary-light: #6f7b9a;
+            --primary: #3f51b5;
+            --primary-dark: #2d3142;
+            --background-light: #2a2a2a;
+            --background: #1e1e1e;
+            --background-dark: #121212;
+            --text-light: #ffffff;
+            --text: #e0e0e0;
+            --text-dark: #b3b3b3;
+            --border-light: #555;
+            --border: #444;
+            --border-dark: #333;
+            --surface-light: #333;
+            --surface: #2a2a2a;
+            --surface-dark: #222;
+            --status-success: #66bb6a;
+            --status-success-light: #81c784;
+            --status-warning: #ffa726;
+            --status-warning-light: #ffb74d;
+            --status-error: #f44336;
+            --status-error-light: #ef5350;
+            --text-on-primary: #ffffff;
+            --text-on-success: #000000;
+            --text-on-warning: #000000;
+            --text-on-error: #ffffff;
+          }
+        `;
+        CMS.registerCmsStyles(css, { raw: true });
+        console.log('Dark Mode styles registered for Decap CMS.');
+      } else {
+        console.error("Decap CMS (CMS) object not found. Dark Mode styles not registered.");
+      }
+    });
+  </script>
 </body>
 </html>
