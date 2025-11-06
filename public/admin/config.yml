@@ -1,9 +1,9 @@
 backend:
-  name: github
-  repo: peditx/peditx-official-site
-  branch: main
-  auth_type: implicit
-  app_id: Ov23liMQ36VXRPwraTVC
+  name: github
+  repo: peditx/peditx-official-site
+  branch: main
+  auth_type: implicit
+  app_id: Ov23liMQ36VXRPwraTVC
 
 # Where media files (like images) will be stored
 media_folder: "public/uploads"
@@ -11,86 +11,86 @@ public_folder: "/uploads"
 
 # This is where we define what content is editable
 collections:
-  # Collection for Profile (manages the single profile.json file)
-  - name: "profile"
-    label: "Profile & Main Info"
-    files:
-      - label: "Profile Data"
-        name: "profile_data"
-        file: "public/profile.json"
-        fields:
-          - label: "Profile Info"
-            name: "profile"
-            widget: "object"
-            fields:
-              - { label: "Name", name: "name", widget: "string" }
-              - { label: "Tagline", name: "tagline", widget: "string" }
-              - { label: "Image URL", name: "imageUrl", widget: "string" }
-              - { label: "Biography", name: "bio", widget: "markdown" }
-          - { label: "SoundCloud Playlist URL", name: "soundcloudPlaylistUrl", widget: "string" }
-          - label: "Section Visibility"
-            name: "sectionToggle"
-            widget: "object"
+  # Collection for Profile (manages the single profile.json file)
+  - name: "profile"
+    label: "Profile & Main Info"
+    files:
+      - label: "Profile Data"
+        name: "profile_data"
+        file: "public/profile.json"
+        fields:
+          - label: "Profile Info"
+            name: "profile"
+            widget: "object"
+            fields:
+              - { label: "Name", name: "name", widget: "string" }
+              - { label: "Tagline", name: "tagline", widget: "string" }
+              - { label: "Image URL", name: "imageUrl", widget: "string" }
+              - { label: "Biography", name: "bio", widget: "markdown" }
+          - { label: "SoundCloud Playlist URL", name: "soundcloudPlaylistUrl", widget: "string" }
+          - label: "Section Visibility"
+            name: "sectionToggle"
+            widget: "object"
             collapsed: false
-            hint: "Control which sections are visible on the website."
-            fields:
-              - { label: "Show Social Links", name: "showLinks", widget: "boolean", default: true }
-              - { label: "Show Projects", name: "showProjects", widget: "boolean", default: true }
-              - { label: "Show Videos", name: "showVideos", widget: "boolean", default: true }
-              - { label: "Show Blog", name: "showBlog", widget: "boolean", default: true }
-              - { label: "Show SoundCloud", name: "showSoundCloud", widget: "boolean", default: true }
+            hint: "Control which sections are visible on the website."
+            fields:
+              - { label: "Show Social Links", name: "showLinks", widget: "boolean", default: true }
+              - { label: "Show Projects", name: "showProjects", widget: "boolean", default: true }
+              - { label: "Show Videos", name: "showVideos", widget: "boolean", default: true }
+              - { label: "Show Blog", name: "showBlog", widget: "boolean", default: true }
+              - { label: "Show SoundCloud", name: "showSoundCloud", widget: "boolean", default: true }
 
-  # A separate, manageable collection for Links
-  - name: "links"
-    label: "Social Links"
-    folder: "src/content/links"
-    create: true
-    allow_reorder: true
-    summary: "{{name}} - {{url}}" # <-- FIXED: Added summary for re-order
-    slug: "{{name}}" # <-- FIXED: Correct indentation
-    fields:
-      - { label: "Name", name: "name", widget: "string" }
-      - { label: "URL", name: "url", widget: "string" }
-      - { label: "SVG Icon Code", name: "icon", widget: "text" }
-      
-  # A separate, manageable collection for Projects
-  - name: "projects"
-    label: "Projects"
-    folder: "src/content/projects"
-    create: true
-    allow_reorder: true
-    summary: "{{name}}" # <-- FIXED: Added summary for re-order
-    slug: "{{name}}" # <-- FIXED: Correct indentation
-    fields:
-        - { label: "Project Name", name: "name", widget: "string" }
-        - { label: "Description", name: "description", widget: "string" }
-        - { label: "Icon URL", name: "iconUrl", widget: "string" }
-        - { label: "URL", name: "url", widget: "string" }
+  # A separate, manageable collection for Links
+  - name: "links"
+    label: "Social Links"
+    folder: "src/content/links"
+    create: true
+    allow_reorder: true
+    summary: "{{name}} - {{url}}" # <-- FIXED: Added summary for re-order
+    slug: "{{name}}" # <-- FIXED: Correct indentation
+    fields:
+      - { label: "Name", name: "name", widget: "string" }
+      - { label: "URL", name: "url", widget: "string" }
+      - { label: "SVG Icon Code", name: "icon", widget: "text" }
+      
+  # A separate, manageable collection for Projects
+  - name: "projects"
+    label: "Projects"
+    folder: "src/content/projects"
+    create: true
+    allow_reorder: true
+    summary: "{{name}}" # <-- FIXED: Added summary for re-order
+    slug: "{{name}}" # <-- FIXED: Correct indentation
+    fields:
+      - { label: "Project Name", name: "name", widget: "string" }
+      - { label: "Description", name: "description", widget: "string" }
+      - { label: "Icon URL", name: "iconUrl", widget: "string" }
+      - { label: "URL", name: "url", widget: "string" }
 
-  # A separate, manageable collection for Videos
-  - name: "videos"
-    label: "Videos"
-    folder: "src/content/videos"
-    create: true
-    allow_reorder: true
-    summary: "{{title}} (ID: {{videoId}})" # <-- FIXED: Added summary for re-order
-    slug: "{{title}}" # <-- FIXED: Correct indentation
-    fields:
-        - { label: "Title", name: "title", widget: "string" }
-        - { label: "YouTube Video ID", name: "videoId", widget: "string" }
-        - { label: "Thumbnail URL", name: "thumbnailUrl", widget: "string" }
+  # A separate, manageable collection for Videos
+  - name: "videos"
+    label: "Videos"
+    folder: "src/content/videos"
+    create: true
+    allow_reorder: true
+    summary: "{{title}} (ID: {{videoId}})" # <-- FIXED: Added summary for re-order
+    slug: "{{title}}" # <-- FIXED: Correct indentation
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "YouTube Video ID", name: "videoId", widget: "string" }
+      - { label: "Thumbnail URL", name: "thumbnailUrl", widget: "string" }
 
-  # Blog collection (ready for the future)
-  - name: "blog"
-    label: "Blog"
-    folder: "src/content/blog"
-    create: true
-    allow_reorder: true
-    summary: "{{title}} - {{pubDate}}" # <-- FIXED: Added summary for re-order
-    slug: "{{year}}-{{month}}-{{day}}-{{slug}}" # <-- FIXED: Correct indentation
-    fields:
-      - { label: "Title", name: "title", widget: "string" }
-      - { label: "Publish Date", name: "pubDate", widget: "datetime" }
-      - { label: "Description", name: "description", widget: "string" }
-      - { label: "Author", name: "author", widget: "string", default: "PeDitX" }
-      - { label: "Body", name: "body", widget: "markdown", required: true, hint: "Main blog content goes here", default: "" }
+  # Blog collection (ready for the future)
+  - name: "blog"
+    label: "Blog"
+    folder: "src/content/blog"
+    create: true
+    allow_reorder: true
+    summary: "{{title}} - {{pubDate}}" # <-- FIXED: Added summary for re-order
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}" # <-- FIXED: Correct indentation
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Publish Date", name: "pubDate", widget: "datetime" }
+      - { label: "Description", name: "description", widget: "string" }
+      - { label: "Author", name: "author", widget: "string", default: "PeDitX" }
+      - { label: "Body", name: "body", widget: "markdown", required: true, hint: "Main blog content goes here", default: "" }
