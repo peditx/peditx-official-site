@@ -46,9 +46,10 @@ collections:
     folder: "src/content/links"
     create: true
     allow_reorder: true
-    summary: "{{name}} - {{url}}" # <-- FIXED: Added summary for re-order
-    slug: "{{name}}" # <-- FIXED: Correct indentation
-    sortable_fields: [] # <-- NEW: Force disable column sorting to enable re-order
+    summary: "{{name}} - {{url}}"
+    slug: "{{name}}"
+    sortable_fields: []
+    view_mode: list # <-- NEW FIX: Force list view to enable drag/drop
     fields:
       - { label: "Name", name: "name", widget: "string" }
       - { label: "URL", name: "url", widget: "string" }
@@ -60,9 +61,10 @@ collections:
     folder: "src/content/projects"
     create: true
     allow_reorder: true
-    summary: "{{name}}" # <-- FIXED: Added summary for re-order
-    slug: "{{name}}" # <-- FIXED: Correct indentation
-    sortable_fields: [] # <-- NEW: Force disable column sorting to enable re-order
+    summary: "{{name}}"
+    slug: "{{name}}"
+    sortable_fields: []
+    view_mode: list # <-- NEW FIX: Force list view to enable drag/drop
     fields:
       - { label: "Project Name", name: "name", widget: "string" }
       - { label: "Description", name: "description", widget: "string" }
@@ -75,9 +77,10 @@ collections:
     folder: "src/content/videos"
     create: true
     allow_reorder: true
-    summary: "{{title}} (ID: {{videoId}})" # <-- FIXED: Added summary for re-order
-    slug: "{{title}}" # <-- FIXED: Correct indentation
-    sortable_fields: [] # <-- NEW: Force disable column sorting to enable re-order
+    summary: "{{title}} (ID: {{videoId}})"
+    slug: "{{title}}"
+    sortable_fields: []
+    view_mode: list # <-- NEW FIX: Force list view to enable drag/drop
     fields:
       - { label: "Title", name: "title", widget: "string" }
       - { label: "YouTube Video ID", name: "videoId", widget: "string" }
@@ -89,9 +92,10 @@ collections:
     folder: "src/content/blog"
     create: true
     allow_reorder: true
-    summary: "{{title}} - {{pubDate}}" # <-- FIXED: Added summary for re-order
-    slug: "{{year}}-{{month}}-{{day}}-{{slug}}" # <-- FIXED: Correct indentation
-    sortable_fields: [] # <-- NEW: Force disable column sorting to enable re-order
+    summary: "{{title}} - {{pubDate}}"
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    sortable_fields: []
+    view_mode: list # <-- NEW FIX: Force list view to enable drag/drop
     fields:
       - { label: "Title", name: "title", widget: "string" }
       - { label: "Publish Date", name: "pubDate", widget: "datetime" }
