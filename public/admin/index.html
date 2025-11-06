@@ -11,10 +11,10 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 
   <!-- 
-    FIX 1: Changed path to relative 'config.yml'.
-    This assumes index.html and config.yml are in the same /admin folder.
+    FINAL FIX 1: Reverted to the original, correct path.
+    This was likely the cause of all problems.
   -->
-  <link href="config.yml" type="text/yaml" rel="cms-config-url">
+  <link href="/admin/config.yml" type="text/yaml" rel="cms-config-url">
 
   <!-- PWA Manifest -->
   <link rel="manifest" href="/manifest.json">
@@ -64,66 +64,63 @@
   </style>
 </head>
 <body>
-  <!-- Load Decap CMS -->
-  <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+  <!-- Load Decap CMS -->
+  <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
 
   <!-- 
-    FIX 2: Merged both scripts into window.load
-    This ensures we run code AFTER decap-cms.js is loaded and window.CMS is ready.
+    FINAL FIX 2: Using the official 'decap-cms-init' event.
+    This is much more reliable than window.load or setTimeout.
   -->
-  <script>
-    window.addEventListener('load', function() {
-      
-      // 1. Register Service Worker
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').then(
-          function(registration) {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          }, 
-          function(err) {
-            console.log('ServiceWorker registration failed: ', err);
-          }
-        );
-      }
+  <script>
+    // Register Service Worker on window load
+    window.addEventListener('load', function() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').then(
+          function(registration) {
+            console.log('ServiceWorker registration successful');
+          }, 
+          function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          }
+        );
+      }
+    });
 
-      // 2. Inject Dark Mode CSS for CMS Admin
-      if (window.CMS) {
-        const css = `
-          :root {
-            --primary-light: #6f7b9a !important;
-            --primary: #3f51b5 !important;
-            --primary-dark: #2d3142 !important;
-            --background-light: #2a2a2a !important;
-            --background: #1e1e1e !important;
-            --background-dark: #121212 !important;
-            --text-light: #ffffff !important;
-            --text: #e0e0e0 !important;
-            --text-dark: #b3b3b3 !important;
-            --border-light: #555 !important;
-            --border: #444 !important;
-            --border-dark: #333 !important;
-            --surface-light: #333 !important;
-            --surface: #2a2a2a !important;
-            --surface-dark: #222 !important;
-            --status-success: #66bb6a !important;
-            --status-success-light: #81c784 !important;
-            --status-warning: #ffa726 !important;
-            --status-warning-light: #ffb74d !important;
-            --status-error: #f44336 !important;
-            --status-error-light: #ef5350 !important;
-            --text-on-primary: #ffffff !important;
-            --text-on-success: #000000 !important;
-            --text-on-warning: #000000 !important;
-            --text-on-error: #ffffff !important;
-          }
-        `;
-        CMS.registerCmsStyles(css, { raw: true });
-        console.log('Dark Mode styles registered for Decap CMS.');
-      } else {
-        console.error("Decap CMS (CMS) object not found. Dark Mode styles not registered.");
-      }
-    });
-  </script>
+    // Register Dark Mode styles when CMS is ready
+    window.addEventListener('decap-cms-init', () => {
+      const css = `
+        :root {
+          --primary-light: #6f7b9a !important;
+          --primary: #3f51b5 !important;
+          --primary-dark: #2d3142 !important;
+          --background-light: #2a2a2a !important;
+          --background: #1e1e1e !important;
+          --background-dark: #121212 !important;
+          --text-light: #ffffff !important;
+          --text: #e0e0e0 !important;
+          --text-dark: #b3b3b3 !important;
+          --border-light: #555 !important;
+          --border: #444 !important;
+          --border-dark: #333 !important;
+          --surface-light: #333 !important;
+          --surface: #2a2a2a !important;
+          --surface-dark: #222 !important;
+          --status-success: #66bb6a !important;
+          --status-success-light: #81c784 !important;
+          --status-warning: #ffa726 !important;
+          --status-warning-light: #ffb74d !important;
+          --status-error: #f44336 !important;
+          --status-error-light: #ef5350 !important;
+          --text-on-primary: #ffffff !important;
+          --text-on-success: #000000 !important;
+          --text-on-warning: #000000 !important;
+          --text-on-error: #ffffff !important;
+        }
+      `;
+      window.CMS.registerCmsStyles(css, { raw: true });
+      console.log('Dark Mode styles registered via decap-cms-init.');
+    });
+  </script>
 
 </body>
 </html>
