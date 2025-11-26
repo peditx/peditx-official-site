@@ -85,4 +85,4 @@ else
     echo "! Warning: Neither Passwall nor Passwall2 found. Node configuration skipped."
 fi
 
-echo ">>> [5/5] Setup Complete."
+echo ">>> [5/5] Setup Complete. Made by PeDitX"
