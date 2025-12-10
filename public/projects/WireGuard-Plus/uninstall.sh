@@ -2,7 +2,7 @@
 
 # ==========================================
 # OpenWrt Native WireGuard Uninstaller
-# (Safe Cleanup - Removes only created configs)
+# (Safe Cleanup - Removes only created configs & Shortcuts)
 # ==========================================
 
 echo -e "\n--- WireGuard-Plus Uninstaller By PeDitX ---\n"
@@ -11,6 +11,7 @@ echo -e "\n--- WireGuard-Plus Uninstaller By PeDitX ---\n"
 WG_IFACE_NAME="wg_plus"
 WG_ZONE_NAME="wg_zone"
 NODE_ID="wg_native_node"
+LUA_SHORTCUT="/usr/lib/lua/luci/controller/wg_shortcut.lua"
 
 # --- Helper Function for Status Reporting ---
 report_status() {
@@ -25,14 +26,12 @@ echo "Starting safe uninstallation..."
 
 # --- 1. Remove Passwall Node ---
 remove_passwall_node() {
-    # Check Passwall 2
     if uci get passwall2.$NODE_ID >/dev/null 2>&1; then
         uci delete passwall2.$NODE_ID
         uci commit passwall2
         echo "   - Removed node from Passwall 2"
     fi
 
-    # Check Regular Passwall
     if uci get passwall.$NODE_ID >/dev/null 2>&1; then
         uci delete passwall.$NODE_ID
         uci commit passwall
@@ -45,10 +44,8 @@ report_status $? "Passwall Cleanup"
 
 # --- 2. Remove Network Interface ---
 remove_network() {
-    # Remove the Interface
     uci delete network.$WG_IFACE_NAME >/dev/null 2>&1
     
-    # Remove the Peer (We named it specifically in the installer)
     PEER_ID="wireguard_${WG_IFACE_NAME}"
     uci delete network.$PEER_ID >/dev/null 2>&1
     
@@ -60,14 +57,10 @@ report_status $? "Network Interface Cleanup"
 
 # --- 3. Remove Firewall Zone & Forwarding ---
 remove_firewall() {
-    # 3.1 Remove Forwardings pointing to our zone
-    # We grep for the destination name to find the section ID (e.g., firewall.@forwarding[0])
     for fwd in $(uci show firewall | grep "dest='$WG_ZONE_NAME'" | cut -d'.' -f1,2); do
         uci delete $fwd
     done
 
-    # 3.2 Remove the Zone itself
-    # We grep for the zone name to find the section ID (e.g., firewall.@zone[1])
     for zone in $(uci show firewall | grep "name='$WG_ZONE_NAME'" | cut -d'.' -f1,2); do
         uci delete $zone
     done
@@ -78,7 +71,21 @@ remove_firewall() {
 remove_firewall
 report_status $? "Firewall Rules Cleanup"
 
-# --- 4. Restart Services ---
+# --- 4. Remove LuCI Shortcut & Cache ---
+remove_shortcut() {
+    if [ -f "$LUA_SHORTCUT" ]; then
+        rm -f "$LUA_SHORTCUT"
+        echo "   - Removed VPN menu shortcut"
+    fi
+    
+    rm -rf /tmp/luci-modulecache/ >/dev/null 2>&1
+    rm -f /tmp/luci-indexcache >/dev/null 2>&1
+}
+
+remove_shortcut
+report_status $? "UI Shortcut & Cache Cleanup"
+
+# --- 5. Restart Services ---
 restart_services() {
     echo "   - Restarting Network & Firewall..."
     /etc/init.d/network restart >/dev/null 2>&1
