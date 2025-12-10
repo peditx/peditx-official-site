@@ -1,13 +1,13 @@
 #!/bin/sh
 
 # ==========================================
-# OpenWrt Native WireGuard Setup + Passwall
+# OpenWrt Native WireGuard Setup + Passwall + UI Shortcut
 # (Silent Mode - Status Reporting Only)
 # ==========================================
 
 echo -e "\n--- WireGuard-Plus By PeDitX ---\n"
 
-# --- 1. USER CONFIGURATION ---
+# --- 1. USER CONFIGURATION (EDIT THIS) ---
 WG_PRIVATE_KEY="YOUR_PRIVATE_KEY_HERE"
 WG_ADDRESS="10.10.10.2/32"
 PEER_PUB_KEY="YOUR_PEER_PUBLIC_KEY_HERE"
@@ -80,15 +80,10 @@ report_status $? "Network Configuration"
 
 # --- 4. Firewall Configuration ---
 configure_firewall() {
-    # Check if zone exists by looking for the name property
     if ! uci show firewall | grep -q "name='$WG_ZONE_NAME'"; then
         
-        # Capture the ID directly from uci add command
         ZONE_KEY=$(uci add firewall zone)
-        
-        if [ -z "$ZONE_KEY" ]; then
-            return 1
-        fi
+        if [ -z "$ZONE_KEY" ]; then return 1; fi
         
         uci set firewall.$ZONE_KEY.name="$WG_ZONE_NAME"
         uci set firewall.$ZONE_KEY.input='REJECT'
@@ -98,12 +93,8 @@ configure_firewall() {
         uci set firewall.$ZONE_KEY.mtu_fix='1'
         uci add_list firewall.$ZONE_KEY.network="$WG_IFACE_NAME"
         
-        # Capture the ID directly for forwarding
         FWD_KEY=$(uci add firewall forwarding)
-        
-        if [ -z "$FWD_KEY" ]; then
-             return 1
-        fi
+        if [ -z "$FWD_KEY" ]; then return 1; fi
 
         uci set firewall.$FWD_KEY.src='lan'
         uci set firewall.$FWD_KEY.dest="$WG_ZONE_NAME"
@@ -154,7 +145,45 @@ else
     echo " [WARN] Passwall not found (Skipped)"
 fi
 
-# --- 6. Restart Services ---
+# --- 6. Create LuCI Shortcut (VPN Menu) ---
+configure_shortcut() {
+    LUA_DIR="/usr/lib/lua/luci/controller"
+    LUA_FILE="$LUA_DIR/wg_shortcut.lua"
+    
+    if [ -d "$LUA_DIR" ]; then
+        cat <<EOF > "$LUA_FILE"
+module("luci.controller.wg_shortcut", package.seeall)
+
+function index()
+    -- Create top-level "VPN" menu (Order 45)
+    entry({"admin", "vpn"}, firstchild(), "VPN", 45).dependent = false
+
+    -- Create the shortcut entry
+    entry({"admin", "vpn", "wg_native"}, call("action_redirect"), "WireGuard Config", 20)
+end
+
+function action_redirect()
+    -- Redirects to Network -> Interfaces -> wg_plus
+    luci.http.redirect(luci.dispatcher.build_url("admin", "network", "network", "$WG_IFACE_NAME"))
+end
+EOF
+        
+        rm -rf /tmp/luci-modulecache/ >/dev/null 2>&1
+        rm -f /tmp/luci-indexcache >/dev/null 2>&1
+        return 0
+    else
+        return 1
+    fi
+}
+
+configure_shortcut
+if [ $? -eq 0 ]; then
+    echo " [OK] Menu Shortcut Created (VPN -> WireGuard Config)"
+else
+    echo " [INFO] LuCI not found, shortcut skipped."
+fi
+
+# --- 7. Restart Services ---
 restart_services() {
     /etc/init.d/network restart >/dev/null 2>&1
     /etc/init.d/firewall restart >/dev/null 2>&1
