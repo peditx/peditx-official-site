@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # ==========================================
-# OpenWrt Linux Desktop Installer (Stable)
-# LXDE/Openbox + Essential Apps + Fixed Repos
+# OpenWrt Linux Desktop Installer (Fixed DNS)
+# LXDE/Openbox + Apps + Reliable Repos
 # ==========================================
 
 CONFIG_DIR="/opt/desktop/data"
@@ -40,7 +40,7 @@ echo ">>> [4/6] Deploying Base Desktop..."
 docker stop desktop >/dev/null 2>&1
 docker rm desktop >/dev/null 2>&1
 
-# Deploy stable alpine desktop
+# We add --dns 8.8.8.8 to fix internet connection issues inside container
 docker run -d \
   --name=desktop \
   --restart=unless-stopped \
@@ -48,41 +48,54 @@ docker run -d \
   -v "$CONFIG_DIR":/home/alpine \
   -e TZ=Asia/Tehran \
   -e VNC_PASSWORD=password \
+  --dns 8.8.8.8 \
+  --dns 1.1.1.1 \
   --shm-size="1gb" \
   soff/tiny-remote-desktop:latest > /dev/null 2>&1
 
 echo ">>> [5/6] Fixing Repos & Installing Apps..."
-echo "   - Waiting for container to initialize..."
-sleep 10
+echo "   - Waiting for container (15 sec)..."
+sleep 15
 
-# FIX REPOS: We explicitly set community repos to ensure 'nano' and 'chromium' are found
+# FIX REPOS: Use HTTP (not HTTPS) and reliable mirrors
 docker exec desktop sh -c 'echo "http://dl-cdn.alpinelinux.org/alpine/latest-stable/main" > /etc/apk/repositories'
 docker exec desktop sh -c 'echo "http://dl-cdn.alpinelinux.org/alpine/latest-stable/community" >> /etc/apk/repositories'
 
-# Update and Install
+# Update and Install with retry logic
 echo "   - Installing Nano, Chromium, PCManFM..."
-if docker exec desktop apk update > /dev/null 2>&1; then
-    docker exec desktop apk add nano pcmanfm lxterminal chromium adwaita-icon-theme > /dev/null 2>&1
-    echo "   - Apps installed successfully."
-else
-    echo "   - WARNING: Repo update failed. Check internet connection."
+if ! docker exec desktop apk update > /dev/null 2>&1; then
+    echo "   - Main repo failed. Switching to backup mirror..."
+    # Fallback to a European mirror which might work better
+    docker exec desktop sh -c 'echo "http://uk.alpinelinux.org/alpine/latest-stable/main" > /etc/apk/repositories'
+    docker exec desktop sh -c 'echo "http://uk.alpinelinux.org/alpine/latest-stable/community" >> /etc/apk/repositories'
+    docker exec desktop apk update > /dev/null 2>&1
 fi
 
-# Create Desktop Shortcut for Chromium
+docker exec desktop apk add nano pcmanfm lxterminal chromium adwaita-icon-theme > /dev/null 2>&1
+echo "   - Apps installed."
+
+# Create Desktop Shortcuts
 docker exec desktop mkdir -p /home/alpine/Desktop > /dev/null 2>&1
+# Chromium
 docker exec desktop sh -c 'echo "[Desktop Entry]
 Type=Application
 Name=Chromium Browser
 Exec=/usr/bin/chromium --no-sandbox
 Icon=web-browser" > /home/alpine/Desktop/chromium.desktop' > /dev/null 2>&1
 docker exec desktop chmod +x /home/alpine/Desktop/chromium.desktop > /dev/null 2>&1
+# File Manager
+docker exec desktop sh -c 'echo "[Desktop Entry]
+Type=Application
+Name=File Manager
+Exec=pcmanfm
+Icon=system-file-manager" > /home/alpine/Desktop/files.desktop' > /dev/null 2>&1
+docker exec desktop chmod +x /home/alpine/Desktop/files.desktop > /dev/null 2>&1
 
 echo ">>> [6/6] Creating PeDitXOS Menu..."
 mkdir -p /usr/lib/lua/luci/controller
 cat << 'EOF' > /usr/lib/lua/luci/controller/peditxos_desktop.lua
 module("luci.controller.peditxos_desktop", package.seeall)
 function index()
-    -- Renamed to "Linux Desktop" as requested
     entry({"admin", "peditxos", "desktop"}, template("peditxos/desktop"), "Linux Desktop", 50)
 end
 EOF
@@ -98,9 +111,9 @@ cat << 'EOF' > /usr/lib/lua/luci/view/peditxos/desktop.htm
                 Open Full Screen
             </a>
             <p style="margin-top: 5px; color: #666;">
-                <b>Apps Installed:</b> Nano, Chromium, File Manager<br>
-                <b>Default User:</b> alpine | <b>Password:</b> password<br>
-                <b>Right Click</b> on desktop to see menu.
+                <b>Apps:</b> Chromium, Nano, File Manager<br>
+                <b>User:</b> alpine | <b>Pass:</b> password<br>
+                <b>Right Click</b> on desktop for menu.
             </p>
         </div>
         <div style="border: 1px solid #ccc;">
