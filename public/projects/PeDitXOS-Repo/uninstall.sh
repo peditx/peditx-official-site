@@ -2,16 +2,15 @@ cat << 'EOF' > /tmp/uninstall.sh
 #!/bin/sh
 echo "------------------------------------------------"
 echo "  Uninstalling PeDitXOS Repository... "
-echo "  Restoring official OpenWrt feeds... "
+echo "  Restoring Original Settings (peditxdl.ir) "
 echo "------------------------------------------------"
 
-# 1. Capture the current release and arch to rebuild the official links
+# 1. Load system variables
 . /etc/openwrt_release
-RELEASE_NUM=${DISTRIB_RELEASE%.*}
 ARCH=$DISTRIB_ARCH
 
-# 2. Complete Rebuild of distfeeds.conf (The Safe Way)
-# This will overwrite the file with official HTTPS links
+# 2. Complete Rebuild of distfeeds.conf (Safe Way)
+# Restore official OpenWrt HTTPS links
 cat << EOX > /etc/opkg/distfeeds.conf
 src/gz openwrt_core https://downloads.openwrt.org/releases/$DISTRIB_RELEASE/targets/$DISTRIB_TARGET/packages
 src/gz openwrt_base https://downloads.openwrt.org/releases/$DISTRIB_RELEASE/packages/$ARCH/base
@@ -21,20 +20,30 @@ src/gz openwrt_routing https://downloads.openwrt.org/releases/$DISTRIB_RELEASE/p
 src/gz openwrt_telephony https://downloads.openwrt.org/releases/$DISTRIB_RELEASE/packages/$ARCH/telephony
 EOX
 
-# 3. Cleanup custom feeds from any PeDitX traces
-sed -i '/peditxdl.ir/d' /etc/opkg/customfeeds.conf
+# 3. Restore Passwall feeds to Original Domain (peditxdl.ir)
+# First cleanup, then add original links
 sed -i '/peditxrepo.ir/d' /etc/opkg/customfeeds.conf
+sed -i '/peditxdl.ir/d' /etc/opkg/customfeeds.conf
 
-# 4. Remove the security key
-rm -f /etc/opkg/keys/passwall.pub
+RELEASE_NUM=${DISTRIB_RELEASE%.*}
+for feed in passwall_luci passwall_packages passwall2; do
+  echo "src/gz $feed https://repo.peditxdl.ir/passwall-packages/releases/packages-$RELEASE_NUM/$ARCH/$feed" >> /etc/opkg/customfeeds.conf
+done
 
-echo "Updating package lists from official servers..."
-# Use -v to see what's happening if it fails
-opkg update
+# 4. Restore Original Security Key
+echo "Restoring Original Security Key..."
+wget -qO /tmp/passwall.pub https://repo.peditxdl.ir/passwall-packages/passwall.pub
+if [ $? -eq 0 ]; then
+    opkg-key add /tmp/passwall.pub > /dev/null 2>&1
+    echo "Key restored successfully."
+fi
+
+echo "Updating package lists... (Please wait)"
+opkg update > /dev/null 2>&1
 
 echo "------------------------------------------------"
-echo "  SUCCESS: Reverted to Official Repository. "
-echo "  Standard feeds have been restored. "
+echo "  SUCCESS: Reverted to peditxdl.ir "
+echo "  System is now in its original safe state. "
 echo "------------------------------------------------"
 EOF
 
