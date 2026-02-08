@@ -31,7 +31,6 @@ echo "src/gz peditxos_pw2 $BASE_PW/passwall2" >> /etc/opkg/customfeeds.conf
 wget -qO /tmp/passwall.pub http://repo.peditxos.ir/passwall/passwall.pub && opkg-key add /tmp/passwall.pub
 
 echo "Testing opkg update..."
-opkg update
 EOF
 
 sh /tmp/setup.sh && rm /tmp/setup.sh
