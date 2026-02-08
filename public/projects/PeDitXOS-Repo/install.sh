@@ -1,41 +1,37 @@
 cat << 'EOF' > /tmp/setup.sh
 #!/bin/sh
 echo "------------------------------------------------"
-echo "  Starting PeDitXOS Repository Migration... "
+echo "  Fixing PeDitXOS Repository Paths... "
 echo "------------------------------------------------"
 
-# ۱. پاکسازی آثار دامین‌های قدیمی
-sed -i '/peditxdl.ir/d' /etc/opkg/distfeeds.conf
-sed -i '/peditxdl.ir/d' /etc/opkg/customfeeds.conf
-sed -i '/peditxrepo.ir/d' /etc/opkg/customfeeds.conf
-sed -i '/repo.peditxos.ir/d' /etc/opkg/customfeeds.conf
+# ۱. پاکسازی
+sed -i '/peditxdl.ir/d' /etc/opkg/*.conf
+sed -i '/peditxrepo.ir/d' /etc/opkg/*.conf
+sed -i '/repo.peditxos.ir/d' /etc/opkg/*.conf
 
-# ۲. تغییر فیدهای اصلی به پروکسی جدید (برای دور زدن اختلال مخابرات)
-sed -i 's|https://downloads.openwrt.org|http://repo.peditxos.ir/openwrt|g' /etc/opkg/distfeeds.conf
+# ۲. اصلاح فیدهای اصلی (OpenWrt Official)
+# نکته: آدرس رو جوری ست می‌کنیم که مستقیم به دایرکتوری اصلی وصل بشه
+sed -i 's|https://downloads.openwrt.org/releases|http://repo.peditxos.ir/openwrt|g' /etc/opkg/distfeeds.conf
 
-# ۳. استخراج نسخه و معماری دستگاه
-read release arch << EOX
-$(. /etc/openwrt_release ; echo ${DISTRIB_RELEASE%.*} $DISTRIB_ARCH)
-EOX
+# ۳. متغیرها
+. /etc/openwrt_release
+ARCH=$DISTRIB_ARCH
+# تبدیل 23.05.3 به 23.05 برای مسیرهای Passwall
+REL_SHORT=$(echo $DISTRIB_RELEASE | cut -d. -f1-2)
 
-# ۴. اضافه کردن فیدهای Passwall (اصلاح شده برای شامل شدن هر ۳ مخزن)
-# آدرس‌ها مطابق ساختار جدید سورس‌فورج و آپاچی تو ست شده‌اند
-BASE_URL="http://repo.peditxos.ir/passwall/releases/packages-$release/$arch"
+# ۴. اضافه کردن فیدهای Passwall با اسم درست فولدرها
+BASE_PW="http://repo.peditxos.ir/passwall/releases/packages-$REL_SHORT/$ARCH"
 
-echo "src/gz peditxos_passwall $BASE_URL/passwall" >> /etc/opkg/customfeeds.conf
-echo "src/gz peditxos_passwall_pkgs $BASE_URL/passwall_packages" >> /etc/opkg/customfeeds.conf
-echo "src/gz peditxos_passwall2 $BASE_URL/passwall2" >> /etc/opkg/customfeeds.conf
+# احتمال زیاد اسم فولدر اول passwall_luci هست نه passwall خالی
+echo "src/gz peditxos_pw_luci $BASE_PW/passwall_luci" >> /etc/opkg/customfeeds.conf
+echo "src/gz peditxos_pw_pkgs $BASE_PW/passwall_packages" >> /etc/opkg/customfeeds.conf
+echo "src/gz peditxos_pw2 $BASE_PW/passwall2" >> /etc/opkg/customfeeds.conf
 
-# ۵. آپدیت کلید امنیتی از آدرس جدید
-wget -qO /tmp/passwall.pub http://repo.peditxos.ir/passwall/passwall.pub && opkg-key add /tmp/passwall.pub > /dev/null 2>&1
+# ۵. آپدیت کلید
+wget -qO /tmp/passwall.pub http://repo.peditxos.ir/passwall/passwall.pub && opkg-key add /tmp/passwall.pub
 
-echo "Updating package lists (please wait)..."
-opkg update > /dev/null 2>&1
-
-echo "------------------------------------------------"
-echo "  SUCCESS: Migrated to PeDitXOS Repository! "
-echo "  All Passwall feeds (1, 2 & pkgs) Added. "
-echo "------------------------------------------------"
+echo "Testing opkg update..."
+opkg update
 EOF
 
 sh /tmp/setup.sh && rm /tmp/setup.sh
