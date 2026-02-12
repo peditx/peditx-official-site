@@ -123,7 +123,7 @@ echo -n "5. Finalizing Branding & Hostname... "
 | |   ( (/ /| |__/ /| | |__ / /\ \   | |___| |___ |
 |_|    \____)_____/ |_|\___)_/  \_\   \_____/(___/ 
                                                    
-               Hack , Build , Reign                                                                                         
+                                   Hack , Build , Reign                                                                                         
 telegram : @PeDitX" > /etc/banner
 } > /dev/null 2>&1
 echo "Done."
