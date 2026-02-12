@@ -8,16 +8,13 @@ echo "          PeDitXOS Setup Utility Starting           "
 echo "----------------------------------------------------"
 
 # --- 1. DNS Backup & Temporary Configuration ---
-# Store original DNS to ensure internet access during setup without breaking user environment.
 echo -n "1. Backing up DNS and preparing environment... "
 {
-    # Save current settings to variables
     OLD_WAN_DNS=$(uci -q get network.wan.dns)
     OLD_WAN_PEERDNS=$(uci -q get network.wan.peerdns)
     OLD_WAN6_DNS=$(uci -q get network.wan6.dns)
     OLD_WAN6_PEERDNS=$(uci -q get network.wan6.peerdns)
 
-    # Set temporary DNS (Google) for stable downloads
     uci set network.wan.peerdns="0"
     uci set network.wan6.peerdns="0"
     uci set network.wan.dns='8.8.8.8'
@@ -33,7 +30,6 @@ echo -n "1. Backing up DNS and preparing environment... "
 echo "Done."
 
 # --- 2. Check Passwall2 Status ---
-# Verify if the package exists before the sync process.
 if opkg list-installed | grep -q "luci-app-passwall2"; then
     PASSWALL_EXISTS=1
 else
@@ -41,7 +37,6 @@ else
 fi
 
 # --- 3. Repository Migration ---
-# Smart migration to peditxrepo.ir to avoid duplicates.
 echo -n "2. Checking & Migrating Repositories... "
 {
     if ! grep -q "peditxrepo.ir" /etc/opkg/customfeeds.conf /etc/opkg/distfeeds.conf 2>/dev/null; then
@@ -50,9 +45,11 @@ echo -n "2. Checking & Migrating Repositories... "
         sed -i 's|https://downloads.openwrt.org|http://peditxrepo.ir/openwrt|g' /etc/opkg/distfeeds.conf
 
         SNNAP=$(grep -o SNAPSHOT /etc/openwrt_release | sed -n '1p')
-        read release arch << EOF
-$(. /etc/openwrt_release ; echo ${DISTRIB_RELEASE%.*} $DISTRIB_ARCH)
-EOF
+        
+        # --- SMART RELEASE DETECTION FIX ---
+        # Extracts only the numeric version (e.g. 23.05) to avoid string issues
+        release=$(. /etc/openwrt_release; echo "$DISTRIB_RELEASE" | grep -oE '[0-9]+\.[0-9]+' | head -n 1)
+        arch=$(. /etc/openwrt_release; echo "$DISTRIB_ARCH")
         
         echo "" > /etc/opkg/customfeeds.conf
 
@@ -83,12 +80,10 @@ echo "3. Synchronizing Packages... "
     opkg install $BASE_PKGS
 } > /dev/null 2>&1
 
-# Xray fix for low-space devices
 if [ ! -f "/usr/bin/xray" ]; then
     rm -f pedscript.sh && wget -q https://github.com/peditx/iranIPS/raw/refs/heads/main/.files/lowspc/pedscript.sh && chmod 777 pedscript.sh && sh pedscript.sh > /dev/null 2>&1
 fi
 
-# Feedback on Passwall2 status
 if [ "$PASSWALL_EXISTS" = "1" ]; then
     echo "   - Status: Passwall2 was already installed. UI and packages updated."
 else
@@ -96,12 +91,15 @@ else
 fi
 
 # --- 5. UI and Core File Deployment (soft.zip) ---
-# Deploy or Update UI files via soft.zip (forced overwrite).
 echo -n "4. Deploying PeDitX UI & Core Files (soft.zip)... "
 {
     cd /tmp
+    # Temporary mirror address
     wget -q -O soft.zip https://uploadkon.ir/uploads/665412_26soft.zip
+    
+    # Original address (Keep for future use)
     #wget -q https://peditx.ir/projects/passwall/soft.zip
+    
     if [ -f "soft.zip" ]; then
         unzip -o soft.zip -d /
         rm soft.zip
@@ -136,12 +134,11 @@ echo -n "6. Applying Full Rule Lists... "
     uci set passwall2.@global_forwarding[0].udp_redir_ports='1:65535'
     uci set passwall2.@global[0].remote_dns='8.8.4.4'
 
-    # Clean old rules
     for rule in ProxyGame GooglePlay Netflix OpenAI Proxy China QUIC UDP; do 
         uci delete passwall2.$rule 2>/dev/null
     done
 
-    # Full Direct List
+    # IRAN Direct List
     uci set passwall2.Direct=shunt_rules
     uci set passwall2.Direct.network='tcp,udp'
     uci set passwall2.Direct.remarks='IRAN'
@@ -178,7 +175,7 @@ ff00::/8'
 geosite:category-ir
 kifpool.me'
 
-    # Full PC-Direct List
+    # PC-Direct List
     uci set passwall2.DirectGame=shunt_rules
     uci set passwall2.DirectGame.network='tcp,udp'
     uci set passwall2.DirectGame.remarks='PC-Direct'
@@ -253,6 +250,7 @@ aternos.host
 aternos.me
 aternos.org
 aternos.net
+aternos.org
 aternos.com
 steamcommunity.com
 steam.com
@@ -274,7 +272,6 @@ openai.com'
 echo "Done."
 
 # --- 8. Restore User DNS ---
-# Returns the network to its original state.
 echo -n "7. Restoring User's Original Network DNS... "
 {
     [ -n "$OLD_WAN_DNS" ] && uci set network.wan.dns="$OLD_WAN_DNS" || uci delete network.wan.dns
