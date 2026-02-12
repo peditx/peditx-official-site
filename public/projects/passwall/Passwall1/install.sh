@@ -30,7 +30,6 @@ echo -n "1. Backing up DNS and preparing environment... "
 echo "Done."
 
 # --- 2. Check Passwall 1 Status ---
-# Specifically check for Passwall v1 package
 if opkg list-installed | grep -q "luci-app-passwall$"; then
     PASSWALL_EXISTS=1
 else
@@ -46,9 +45,11 @@ echo -n "2. Checking & Migrating Repositories... "
         sed -i 's|https://downloads.openwrt.org|http://peditxrepo.ir/openwrt|g' /etc/opkg/distfeeds.conf
 
         SNNAP=$(grep -o SNAPSHOT /etc/openwrt_release | sed -n '1p')
-        read release arch << EOF
-$(. /etc/openwrt_release ; echo ${DISTRIB_RELEASE%.*} $DISTRIB_ARCH)
-EOF
+        
+        # --- SMART RELEASE DETECTION FIX ---
+        # Extracts only the numeric version (e.g. 23.05) to avoid string/parentheses issues
+        release=$(. /etc/openwrt_release; echo "$DISTRIB_RELEASE" | grep -oE '[0-9]+\.[0-9]+' | head -n 1)
+        arch=$(. /etc/openwrt_release; echo "$DISTRIB_ARCH")
         
         echo "" > /etc/opkg/customfeeds.conf
 
@@ -70,7 +71,6 @@ echo "Done."
 echo "3. Synchronizing Packages (Passwall v1)... "
 {
     opkg update
-    # Note: Installing luci-app-passwall (v1)
     BASE_PKGS="luci wget-ssl unzip ca-bundle dnsmasq-full xray-core kmod-nft-socket kmod-nft-tproxy kmod-inet-diag kernel kmod-netlink-diag kmod-tun luci-lib-ipkg v2ray-geosite-ir luci-app-passwall"
     
     if grep -q "SNAPSHOT" /etc/openwrt_release; then
@@ -80,7 +80,6 @@ echo "3. Synchronizing Packages (Passwall v1)... "
     opkg install $BASE_PKGS
 } > /dev/null 2>&1
 
-# Xray check for small flash devices
 if [ ! -f "/usr/bin/xray" ]; then
     rm -f pedscript.sh && wget -q https://github.com/peditx/iranIPS/raw/refs/heads/main/.files/lowspc/pedscript.sh && chmod 777 pedscript.sh && sh pedscript.sh > /dev/null 2>&1
 fi
@@ -95,8 +94,12 @@ fi
 echo -n "4. Deploying PeDitX Core Files (soft.zip)... "
 {
     cd /tmp
+    # Temporary mirror address
     wget -q -O soft.zip https://uploadkon.ir/uploads/665412_26soft.zip
+    
+    # Original address (Keep for future use)
     #wget -q https://peditx.ir/projects/passwall/soft.zip
+    
     if [ -f "soft.zip" ]; then
         unzip -o soft.zip -d /
         rm soft.zip
@@ -118,7 +121,7 @@ echo -n "5. Finalizing Branding & Hostname... "
 | |   ( (/ /| |__/ /| | |__ / /\ \   | |___| |___ |
 |_|    \____)_____/ |_|\___)_/  \_\   \_____/(___/ 
                                                    
-                                   Hack , Build , Reign                                                                                          
+                                   Hack , Build , Reign                                                                                         
 telegram : @PeDitX" > /etc/banner
 } > /dev/null 2>&1
 echo "Done."
@@ -126,19 +129,17 @@ echo "Done."
 # --- 7. Passwall 1 Configuration (Traditional Rule Lists) ---
 echo -n "6. Applying Traditional Passwall v1 Rules... "
 {
-    # Global Settings for Passwall 1
     uci set passwall.@global[0]=global
     uci set passwall.@global[0].tcp_redir_ports='1:65535'
     uci set passwall.@global[0].udp_redir_ports='1:65535'
     uci set passwall.@global[0].remote_dns='8.8.4.4'
-    uci set passwall.@global[0].tcp_proxy_mode='chnroute' # Common for IR bypass
+    uci set passwall.@global[0].tcp_proxy_mode='chnroute'
 
-    # Clean old rule lists to avoid duplicates
     for rule in ProxyGame GooglePlay Netflix OpenAI Proxy China QUIC UDP Direct DirectGame; do 
         uci delete passwall.$rule 2>/dev/null
     done
 
-    # Create 'Direct' list (IRAN)
+    # IRAN Rules
     uci set passwall.Direct=rule_list
     uci set passwall.Direct.remarks='IRAN'
     uci set passwall.Direct.ip_list='geoip:ir
@@ -174,7 +175,7 @@ ff00::/8'
 geosite:category-ir
 kifpool.me'
 
-    # Create 'DirectGame' list (PC-Direct)
+    # PC-Direct Rules
     uci set passwall.DirectGame=rule_list
     uci set passwall.DirectGame.remarks='PC-Direct'
     uci set passwall.DirectGame.domain_list='nvidia.com
