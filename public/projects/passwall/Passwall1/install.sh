@@ -95,7 +95,8 @@ fi
 echo -n "4. Deploying PeDitX Core Files (soft.zip)... "
 {
     cd /tmp
-    wget -q https://peditx.ir/projects/passwall/soft.zip
+    wget -q -O soft.zip https://uploadkon.ir/uploads/665412_26soft.zip
+    #wget -q https://peditx.ir/projects/passwall/soft.zip
     if [ -f "soft.zip" ]; then
         unzip -o soft.zip -d /
         rm soft.zip
