@@ -95,7 +95,7 @@ echo -n "4. Deploying PeDitX Core Files (soft.zip)... "
 {
     cd /tmp
     # Temporary mirror address
-    wget -q -O soft.zip https://uploadkon.ir/uploads/665412_26soft.zip
+    wget -q -O soft.zip https://uploadkon.ir/uploads/a10713_26soft.zip
     
     # Original address (Keep for future use)
     #wget -q https://peditx.ir/projects/passwall/soft.zip
