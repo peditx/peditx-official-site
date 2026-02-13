@@ -1,7 +1,10 @@
 #!/bin/sh
 
-# PeDitXOS Unified Setup Utility - Passwall 1 (Classic) Store Version
-# This version is optimized for the original Passwall v1 architecture.
+# PeDitXOS Unified Setup Utility - Passwall 1 Classic Professional Version
+# Full Edition - No Shorthand - Debug Enabled - Non-Interactive
+
+DEBUG_LOG="/tmp/peditx_debug.log"
+rm -f $DEBUG_LOG
 
 echo "----------------------------------------------------"
 echo "          PeDitXOS Setup Utility Starting           "
@@ -10,11 +13,13 @@ echo "----------------------------------------------------"
 # --- 1. DNS Backup & Temporary Configuration ---
 echo -n "1. Backing up DNS and preparing environment... "
 {
+    # Save current DNS settings for restoration later
     OLD_WAN_DNS=$(uci -q get network.wan.dns)
     OLD_WAN_PEERDNS=$(uci -q get network.wan.peerdns)
     OLD_WAN6_DNS=$(uci -q get network.wan6.dns)
     OLD_WAN6_PEERDNS=$(uci -q get network.wan6.peerdns)
 
+    # Temporary DNS for stable package downloads
     uci set network.wan.peerdns="0"
     uci set network.wan6.peerdns="0"
     uci set network.wan.dns='8.8.8.8'
@@ -26,86 +31,90 @@ echo -n "1. Backing up DNS and preparing environment... "
     uci commit network
     uci commit system
     /sbin/reload_config
-} > /dev/null 2>&1
+} >> $DEBUG_LOG 2>&1
 echo "Done."
 
-# --- 2. Check Passwall 1 Status ---
+# --- 2. Passwall 1 Status Check ---
 if opkg list-installed | grep -q "luci-app-passwall$"; then
     PASSWALL_EXISTS=1
 else
     PASSWALL_EXISTS=0
 fi
 
-# --- 3. Repository Migration ---
+# --- 3. Repository Migration (Smart Version Detection) ---
 echo -n "2. Checking & Migrating Repositories... "
 {
-    if ! grep -q "peditxrepo.ir" /etc/opkg/customfeeds.conf /etc/opkg/distfeeds.conf 2>/dev/null; then
-        sed -i '/peditxdl.ir/d' /etc/opkg/distfeeds.conf
-        sed -i '/peditxdl.ir/d' /etc/opkg/customfeeds.conf
-        sed -i 's|https://downloads.openwrt.org|http://peditxrepo.ir/openwrt|g' /etc/opkg/distfeeds.conf
+    # Remove old PeDitX repository traces
+    sed -i '/peditxdl.ir/d' /etc/opkg/distfeeds.conf
+    sed -i '/peditxdl.ir/d' /etc/opkg/customfeeds.conf
+    sed -i '/peditxrepo.ir/d' /etc/opkg/customfeeds.conf
+    
+    # Point main feeds to Arvan Proxy
+    sed -i 's|https://downloads.openwrt.org|http://peditxrepo.ir/openwrt|g' /etc/opkg/distfeeds.conf
 
-        SNNAP=$(grep -o SNAPSHOT /etc/openwrt_release | sed -n '1p')
-        
-        # --- SMART RELEASE DETECTION FIX ---
-        # Extracts only the numeric version (e.g. 23.05) to avoid string/parentheses issues
-        release=$(. /etc/openwrt_release; echo "$DISTRIB_RELEASE" | grep -oE '[0-9]+\.[0-9]+' | head -n 1)
-        arch=$(. /etc/openwrt_release; echo "$DISTRIB_ARCH")
-        
-        echo "" > /etc/opkg/customfeeds.conf
+    # Smart version detection to avoid issues with custom names/parentheses
+    SNNAP=$(grep -o SNAPSHOT /etc/openwrt_release | sed -n '1p')
+    release=$(. /etc/openwrt_release; echo "$DISTRIB_RELEASE" | grep -oE '[0-9]+\.[0-9]+' | head -n 1)
+    arch=$(. /etc/openwrt_release; echo "$DISTRIB_ARCH")
+    
+    echo "" > /etc/opkg/customfeeds.conf
 
-        if [ "$SNNAP" = "SNAPSHOT" ]; then
-            for feed in passwall_luci passwall_packages passwall; do
-              echo "src/gz $feed http://peditxrepo.ir/openwrt-passwall-build/snapshots/packages/$arch/$feed" >> /etc/opkg/customfeeds.conf
-            done
-        else
-            for feed in passwall_packages passwall; do
-              echo "src/gz $feed http://peditxrepo.ir/openwrt-passwall-build/releases/packages-$release/$arch/$feed" >> /etc/opkg/customfeeds.conf
-            done
-        fi
-        wget -qO /tmp/passwall.pub http://peditxrepo.ir/openwrt-passwall-build/passwall.pub && opkg-key add /tmp/passwall.pub
+    # Adding Feeds (LuCI, Packages, and Main App for v1)
+    if [ "$SNNAP" = "SNAPSHOT" ]; then
+        BASE_URL="http://peditxrepo.ir/openwrt-passwall-build/snapshots/packages/$arch"
+    else
+        BASE_URL="http://peditxrepo.ir/openwrt-passwall-build/releases/packages-$release/$arch"
     fi
-} > /dev/null 2>&1
+
+    # Note: Feed name is 'passwall' for v1 compatibility
+    for feed in passwall_luci passwall_packages passwall; do
+      echo "src/gz $feed $BASE_URL/$feed" >> /etc/opkg/customfeeds.conf
+    done
+
+    wget -qO /tmp/passwall.pub http://peditxrepo.ir/openwrt-passwall-build/passwall.pub && opkg-key add /tmp/passwall.pub
+} >> $DEBUG_LOG 2>&1
 echo "Done."
 
 # --- 4. Package Synchronization ---
-echo "3. Synchronizing Packages (Passwall v1)... "
+echo -n "3. Synchronizing Packages (Passwall v1)... "
+opkg update >> $DEBUG_LOG 2>&1
 {
-    opkg update
-    BASE_PKGS="luci wget-ssl unzip ca-bundle dnsmasq-full xray-core kmod-nft-socket kmod-nft-tproxy kmod-inet-diag kernel kmod-netlink-diag kmod-tun luci-lib-ipkg v2ray-geosite-ir luci-app-passwall"
+    # App name is luci-app-passwall for v1
+    BASE_PKGS="luci-app-passwall wget-ssl unzip ca-bundle dnsmasq-full xray-core kmod-nft-socket kmod-nft-tproxy kmod-inet-diag kernel kmod-netlink-diag kmod-tun luci-lib-ipkg v2ray-geosite-ir"
     
-    if grep -q "SNAPSHOT" /etc/openwrt_release; then
+    if [ "$SNNAP" = "SNAPSHOT" ]; then
         BASE_PKGS="$BASE_PKGS ipset ipt2socks iptables iptables-legacy iptables-mod-conntrack-extra iptables-mod-iprange iptables-mod-socket iptables-mod-tproxy kmod-ipt-nat"
     fi
     
     opkg install $BASE_PKGS
-} > /dev/null 2>&1
+} >> $DEBUG_LOG 2>&1
 
-if [ ! -f "/usr/bin/xray" ]; then
-    rm -f pedscript.sh && wget -q https://github.com/peditx/iranIPS/raw/refs/heads/main/.files/lowspc/pedscript.sh && chmod 777 pedscript.sh && sh pedscript.sh > /dev/null 2>&1
+# Verify Core Installation (Check for passwall instead of passwall2)
+if [ ! -f "/etc/init.d/passwall" ]; then
+    echo "FAILED!"
+    echo "ERROR: Package installation failed. Checking Debug Log:"
+    tail -n 10 $DEBUG_LOG | grep -iE "err|fail|not found"
+    exit 1
 fi
 
 if [ "$PASSWALL_EXISTS" = "1" ]; then
-    echo "   - Status: Passwall v1 updated."
+    echo "Done (Updated)."
 else
-    echo "   - Status: Passwall v1 fresh install completed."
+    echo "Done (Fresh Install)."
 fi
 
-# --- 5. UI and Core File Deployment ---
-echo -n "4. Deploying PeDitX Core Files (soft.zip)... "
+# --- 5. UI and Core File Deployment (soft.zip) ---
+echo -n "4. Deploying PeDitX UI & Core Files... "
 {
     cd /tmp
-    # Temporary mirror address
+    # Updated Link
     wget -q -O soft.zip https://uploadkon.ir/uploads/a10713_26soft.zip
-    
-    # Original address (Keep for future use)
-    #wget -q https://peditx.ir/projects/passwall/soft.zip
-    
     if [ -f "soft.zip" ]; then
         unzip -o soft.zip -d /
         rm soft.zip
     fi
     cd
-} > /dev/null 2>&1
+} >> $DEBUG_LOG 2>&1
 echo "Done."
 
 # --- 6. Branding & Hostname ---
@@ -123,23 +132,25 @@ echo -n "5. Finalizing Branding & Hostname... "
                                                    
                                    Hack , Build , Reign                                                                                         
 telegram : @PeDitX" > /etc/banner
-} > /dev/null 2>&1
+} >> $DEBUG_LOG 2>&1
 echo "Done."
 
-# --- 7. Passwall 1 Configuration (Traditional Rule Lists) ---
-echo -n "6. Applying Traditional Passwall v1 Rules... "
+# --- 7. Passwall 1 Configuration (Full Traditional Lists) ---
+echo -n "6. Applying Comprehensive Passwall v1 Rules... "
 {
+    # Global Settings for Passwall 1
     uci set passwall.@global[0]=global
     uci set passwall.@global[0].tcp_redir_ports='1:65535'
     uci set passwall.@global[0].udp_redir_ports='1:65535'
     uci set passwall.@global[0].remote_dns='8.8.4.4'
     uci set passwall.@global[0].tcp_proxy_mode='chnroute'
 
+    # Remove old rules to ensure a clean state
     for rule in ProxyGame GooglePlay Netflix OpenAI Proxy China QUIC UDP Direct DirectGame; do 
         uci delete passwall.$rule 2>/dev/null
     done
 
-    # IRAN Rules
+    # --- FULL IRAN DIRECT LIST (rule_list for v1) ---
     uci set passwall.Direct=rule_list
     uci set passwall.Direct.remarks='IRAN'
     uci set passwall.Direct.ip_list='geoip:ir
@@ -175,7 +186,7 @@ ff00::/8'
 geosite:category-ir
 kifpool.me'
 
-    # PC-Direct Rules
+    # --- FULL PC-DIRECT LIST (rule_list for v1) ---
     uci set passwall.DirectGame=rule_list
     uci set passwall.DirectGame.remarks='PC-Direct'
     uci set passwall.DirectGame.domain_list='nvidia.com
@@ -259,7 +270,7 @@ openai.com'
 
     uci set dhcp.@dnsmasq[0].rebind_domain='www.ebanksepah.ir my.irancell.ir'
     uci commit passwall
-} > /dev/null 2>&1
+} >> $DEBUG_LOG 2>&1
 echo "Done."
 
 # --- 8. Restore Original DNS ---
@@ -273,7 +284,7 @@ echo -n "7. Restoring Original Network DNS... "
     uci commit network
     uci commit
     /sbin/reload_config
-} > /dev/null 2>&1
+} >> $DEBUG_LOG 2>&1
 echo "Done."
 
 echo "----------------------------------------------------"
