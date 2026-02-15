@@ -129,8 +129,9 @@ echo -n "5. Finalizing Branding & Hostname... "
 |  ____/ _  ) |   | | |  _)  )  (    | |   | |/___)
 | |   ( (/ /| |__/ /| | |__ / /\ \   | |___| |___ |
 |_|    \____)_____/ |_|\___)_/  \_\   \_____/(___/ 
-                                                   
+                                                  
                                    Hack , Build , Reign                                                                                         
+HTTPS://PEDITX.IR   
 telegram : @PeDitX" > /etc/banner
 } >> $DEBUG_LOG 2>&1
 echo "Done."
