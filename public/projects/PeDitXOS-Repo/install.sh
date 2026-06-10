@@ -5,46 +5,47 @@
 #   Server: repository.peditxos.ir (Hetzner)
 # ------------------------------------------------
 
-# 1. Auto-Detect System Info
+# 1. Reliable System Info Detection
 OS_TYPE=$(grep -q "ImmortalWrt" /etc/os-release && echo "immortalwrt" || echo "openwrt")
-VERSION=$(grep "VERSION_ID=" /etc/os-release | awk -F '"' '{print $2}')
+VERSION=$(grep "VERSION_ID=" /etc/os-release | cut -d'"' -f2)
+[ -z "$VERSION" ] && VERSION=$(grep "VERSION=" /etc/os-release | cut -d'"' -f2 | awk '{print $1}')
 SHORT_VER=$(echo $VERSION | awk -F. '{print $1"."$2}')
 ARCH=$(opkg info kernel | grep Architecture | awk '{print $2}')
 
+# Fail-safe: Stop if version could not be detected
+if [ -z "$VERSION" ]; then
+    echo "❌ ERROR: Could not detect firmware version. Aborting."
+    exit 1
+fi
+
 echo "🔍 Detected: $OS_TYPE $VERSION ($ARCH)"
 
-# 2. Rebuild Official Feeds (Safe Overwrite)
-BASE_URL="http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}"
-
-cat <<FEEDS > /etc/opkg/distfeeds.conf
-src/gz ${OS_TYPE}_base ${BASE_URL}/base/
-src/gz ${OS_TYPE}_luci ${BASE_URL}/luci/
-src/gz ${OS_TYPE}_packages ${BASE_URL}/packages/
-src/gz ${OS_TYPE}_routing ${BASE_URL}/routing/
-src/gz ${OS_TYPE}_telephony ${BASE_URL}/telephony/
-FEEDS
+# 2. Rebuild Official Feeds
+cat <<EOF > /etc/opkg/distfeeds.conf
+src/gz ${OS_TYPE}_base http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/base/
+src/gz ${OS_TYPE}_luci http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/luci/
+src/gz ${OS_TYPE}_packages http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/packages/
+src/gz ${OS_TYPE}_routing http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/routing/
+src/gz ${OS_TYPE}_telephony http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/telephony/
+EOF
 
 # 3. Rebuild Custom Feeds (Passwall)
-PASS_URL="http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}"
-
-cat <<CUSTOM > /etc/opkg/customfeeds.conf
-src/gz peditxos_passwall_pkgs ${PASS_URL}/passwall_packages/
-src/gz peditxos_passwall_luci ${PASS_URL}/passwall_luci/
-src/gz peditxos_passwall2 ${PASS_URL}/passwall2/
-CUSTOM
+cat <<EOF > /etc/opkg/customfeeds.conf
+src/gz peditxos_passwall_pkgs http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/passwall_packages/
+src/gz peditxos_passwall_luci http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/passwall_luci/
+src/gz peditxos_passwall2 http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/passwall2/
+EOF
 
 # 4. Detect Package Manager & Add Key
 if command -v apk >/dev/null 2>&1; then
     PKG_TYPE="apk"
-    KEY_NAME="apk.pub"
     echo "⬇️ Downloading APK key..."
-    wget -qO /etc/apk/keys/$KEY_NAME http://repository.peditxos.ir/openwrt-passwall-build/$KEY_NAME
+    wget -qO /etc/apk/keys/apk.pub http://repository.peditxos.ir/openwrt-passwall-build/apk.pub
 else
     PKG_TYPE="ipk"
-    KEY_NAME="ipk.pub"
     echo "⬇️ Downloading IPK key..."
-    wget -qO /tmp/$KEY_NAME http://repository.peditxos.ir/openwrt-passwall-build/$KEY_NAME
-    opkg-key add /tmp/$KEY_NAME 2>/dev/null
+    wget -qO /tmp/ipk.pub http://repository.peditxos.ir/openwrt-passwall-build/ipk.pub
+    opkg-key add /tmp/ipk.pub 2>/dev/null
 fi
 
 # 5. Clear Cache & Update
@@ -57,6 +58,6 @@ else
 fi
 
 echo "------------------------------------------------"
-echo "  ✅ SUCCESS: PeDitXOS Repo 2.9 Installed!    "
-echo "  Type: $PKG_TYPE | OS: $OS_TYPE $SHORT_VER    "
+echo "  ✅ SUCCESS: PeDitXOS Repo 2.9 Installed!"
+echo "  Type: $PKG_TYPE | OS: $OS_TYPE $VERSION"
 echo "------------------------------------------------"
