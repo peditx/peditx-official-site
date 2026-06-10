@@ -12,10 +12,11 @@ VERSION=$(grep "VERSION_ID=" /etc/os-release | cut -d'"' -f2)
 SHORT_VER=$(echo $VERSION | awk -F. '{print $1"."$2}')
 ARCH=$(opkg info kernel | grep Architecture | awk '{print $2}')
 
-# Fail-safe: Stop if version could not be detected
+# Fallback: If version is still empty, default to 'snapshot' to prevent aborting
 if [ -z "$VERSION" ]; then
-    echo "❌ ERROR: Could not detect firmware version. Aborting."
-    exit 1
+    echo "⚠️ Warning: Could not detect firmware version. Falling back to 'snapshot'."
+    VERSION="snapshot"
+    SHORT_VER="snapshot"
 fi
 
 echo "🔍 Detected: $OS_TYPE $VERSION ($ARCH)"
