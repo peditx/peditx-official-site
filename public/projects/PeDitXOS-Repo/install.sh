@@ -1,10 +1,13 @@
 #!/bin/sh
 
 # ------------------------------------------------
-#   PeDitXOS Repository Smart Installer v4.4
+#   PeDitXOS Repository Smart Installer v4.8
 #   Server: repository.peditxos.ir (Hetzner)
 #   Author: PeDitXOS Team
 # ------------------------------------------------
+
+# Define the installer script version
+SCRIPT_VERSION="4.8"
 
 # Clear screen for a neat installation experience
 clear
@@ -76,7 +79,7 @@ if [ -z "$VERSION" ] || ! echo "$VERSION" | grep -q -E '[0-9]{2}\.[0-9]{2}'; the
 fi
 
 # --- STEP 4: Strict Sanitization and Normalization ---
-VERSION=$(echo "$VERSION" | tr -d "'\" \\\r\n")
+VERSION=$(echo "$VERSION" | tr -d "'\" \\\\\\\r\n\t")
 
 if [ -z "$VERSION" ] || echo "$VERSION" | grep -qi -E 'snapshot|dev|git'; then
     VERSION="snapshot"
@@ -99,7 +102,7 @@ if [ -z "$SHORT_VER" ] || [ "$SHORT_VER" = "." ]; then
 fi
 
 # Detect Architecture reliably (Optimized for BusyBox tr standard compatibility)
-ARCH=$(grep "OPENWRT_ARCH" "$OS_RELEASE_FILE" 2>/dev/null | cut -d'=' -f2 | tr -d "'\" ")
+ARCH=$(grep "OPENWRT_ARCH" "$OS_RELEASE_FILE" 2>/dev/null | cut -d'=' -f2 | tr -d "'\" \/\r\n\t")
 if [ -z "$ARCH" ]; then
     if [ "$PKG_TYPE" = "apk" ]; then
         ARCH=$(apk --print-arch 2>/dev/null)
@@ -107,6 +110,7 @@ if [ -z "$ARCH" ]; then
         ARCH=$(opkg print-architecture 2>/dev/null | awk '{print $2}' | grep -v 'all' | head -n 1)
     fi
 fi
+ARCH=$(echo "$ARCH" | tr -d "'\" \/\r\n\t")
 [ -z "$ARCH" ] && ARCH=$(uname -m)
 
 # Exit if critical environment data is still missing
@@ -122,10 +126,10 @@ echo "  • Firmware Version : $VERSION (Short: $SHORT_VER)"
 echo "  • Architecture     : $ARCH"
 echo "  • Package Manager  : $(echo "$PKG_TYPE" | tr 'a-z' 'A-Z')"
 echo "--------------------------------------------------"
-echo "🚀 Starting repository setup..."
+echo "🚀 Starting repository setup (Installer v$SCRIPT_VERSION)..."
 echo ""
 
-# 2. Rebuild Feeds / Repositories based on package manager
+# 2. Rebuild Feeds / Repositories based on package manager (Standard OpenWrt hierarchy followed strictly)
 if [ "$PKG_TYPE" = "apk" ]; then
     echo "➡️ [1/4] Rebuilding official repositories (APK)..."
     mkdir -p /etc/apk
@@ -135,9 +139,9 @@ http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/lu
 http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/packages
 http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/routing
 http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/telephony
-http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/passwall_packages
-http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/passwall_luci
-http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/passwall2
+http://repository.peditxos.ir/openwrt-passwall-build/releases/${SHORT_VER}/packages/${ARCH}/passwall_packages
+http://repository.peditxos.ir/openwrt-passwall-build/releases/${SHORT_VER}/packages/${ARCH}/passwall_luci
+http://repository.peditxos.ir/openwrt-passwall-build/releases/${SHORT_VER}/packages/${ARCH}/passwall2
 EOF
     echo "  ↳ Done."
     echo ""
@@ -145,20 +149,20 @@ EOF
 else
     echo "➡️ [1/4] Rebuilding official repositories (OPKG)..."
     cat <<EOF > /etc/opkg/distfeeds.conf
-src/gz ${OS_TYPE}_base http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/base/
-src/gz ${OS_TYPE}_luci http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/luci/
-src/gz ${OS_TYPE}_packages http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/packages/
-src/gz ${OS_TYPE}_routing http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/routing/
-src/gz ${OS_TYPE}_telephony http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/telephony/
+src/gz ${OS_TYPE}_base http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/base
+src/gz ${OS_TYPE}_luci http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/luci
+src/gz ${OS_TYPE}_packages http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/packages
+src/gz ${OS_TYPE}_routing http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/routing
+src/gz ${OS_TYPE}_telephony http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/telephony
 EOF
     echo "  ↳ Done."
     echo ""
 
     echo "➡️ [2/4] Setting up custom Passwall repositories..."
     cat <<EOF > /etc/opkg/customfeeds.conf
-src/gz peditxos_passwall_pkgs http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/passwall_packages/
-src/gz peditxos_passwall_luci http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/passwall_luci/
-src/gz peditxos_passwall2 http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/passwall2/
+src/gz peditxos_passwall_pkgs http://repository.peditxos.ir/openwrt-passwall-build/releases/${SHORT_VER}/packages/${ARCH}/passwall_packages
+src/gz peditxos_passwall_luci http://repository.peditxos.ir/openwrt-passwall-build/releases/${SHORT_VER}/packages/${ARCH}/passwall_luci
+src/gz peditxos_passwall2 http://repository.peditxos.ir/openwrt-passwall-build/releases/${SHORT_VER}/packages/${ARCH}/passwall2
 EOF
     echo "  ↳ Done."
     echo ""
@@ -198,7 +202,7 @@ echo ""
 
 # Installation success terminal response
 echo "=================================================="
-echo "  ✅ SUCCESS: PeDitXOS Repository Installed!     "
+echo "  ✅ SUCCESS: PeDitXOS Repo Installer v$SCRIPT_VERSION"
 echo "--------------------------------------------------"
 echo "  • Operating System : $(echo "$OS_TYPE" | tr 'a-z' 'A-Z')"
 echo "  • Installed Ver    : v$VERSION ($SHORT_VER)"
