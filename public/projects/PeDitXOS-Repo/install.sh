@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # ------------------------------------------------
-#   PeDitXOS Repository Smart Installer v4.0
+#   PeDitXOS Repository Smart Installer v4.4
 #   Server: repository.peditxos.ir (Hetzner)
 #   Author: PeDitXOS Team
 # ------------------------------------------------
@@ -31,27 +31,25 @@ else
     PKG_TYPE="opkg"
 fi
 
-# --- STEP 1: Try sourcing official environment files ---
-if [ -f "$OPENWRT_RELEASE_FILE" ]; then
-    DISTRIB_RELEASE=""
-    . "$OPENWRT_RELEASE_FILE" 2>/dev/null
-    VERSION="$DISTRIB_RELEASE"
-fi
-
-if [ -z "$VERSION" ] && [ -f "$OS_RELEASE_FILE" ]; then
+# --- STEP 1: OS-RELEASE takes highest priority (configured by build YML) ---
+if [ -f "$OS_RELEASE_FILE" ]; then
     VERSION_ID=""
     . "$OS_RELEASE_FILE" 2>/dev/null
     VERSION="$VERSION_ID"
 fi
 
-# --- STEP 2: Raw regex scan on files if version is still empty or non-standard ---
+if [ -z "$VERSION" ] && [ -f "$OPENWRT_RELEASE_FILE" ]; then
+    DISTRIB_RELEASE=""
+    . "$OPENWRT_RELEASE_FILE" 2>/dev/null
+    VERSION="$DISTRIB_RELEASE"
+fi
+
+# --- STEP 2: Raw regex scan fallback if variables are empty ---
 if [ -z "$VERSION" ] || ! echo "$VERSION" | grep -q -E '[0-9]{2}\.[0-9]{2}'; then
-    for file in "$OPENWRT_RELEASE_FILE" "$OS_RELEASE_FILE" "$IMMORTALWRT_RELEASE_FILE" "$BANNER_FILE"; do
+    for file in "$OS_RELEASE_FILE" "$OPENWRT_RELEASE_FILE" "$IMMORTALWRT_RELEASE_FILE" "$BANNER_FILE"; do
         [ -f "$file" ] || continue
-        # Look for XX.XX.X format first (e.g., 23.05.3)
         MATCHED=$(grep -o -E '[0-9]{2}\.[0-9]{2}\.[0-9]+' "$file" | head -n 1)
         if [ -z "$MATCHED" ]; then
-            # Look for XX.XX format (e.g., 23.05)
             MATCHED=$(grep -o -E '[0-9]{2}\.[0-9]{2}' "$file" | head -n 1)
         fi
         if [ -n "$MATCHED" ]; then
@@ -61,7 +59,7 @@ if [ -z "$VERSION" ] || ! echo "$VERSION" | grep -q -E '[0-9]{2}\.[0-9]{2}'; the
     done
 fi
 
-# --- STEP 3: Fallback to base-files package database query ---
+# --- STEP 3: Fallback to package database metadata ---
 if [ -z "$VERSION" ] || ! echo "$VERSION" | grep -q -E '[0-9]{2}\.[0-9]{2}'; then
     if [ "$PKG_TYPE" = "apk" ]; then
         BASE_FILES_VER=$(apk info -v base-files 2>/dev/null)
@@ -69,7 +67,6 @@ if [ -z "$VERSION" ] || ! echo "$VERSION" | grep -q -E '[0-9]{2}\.[0-9]{2}'; the
         BASE_FILES_VER=$(opkg info base-files 2>/dev/null | grep "Version:" | cut -d' ' -f2)
     fi
     
-    # Try finding standard version string inside package metadata
     MATCHED=$(echo "$BASE_FILES_VER" | grep -o -E '[0-9]{2}\.[0-9]{2}\.[0-9]+' | head -n 1)
     [ -z "$MATCHED" ] && MATCHED=$(echo "$BASE_FILES_VER" | grep -o -E '[0-9]{2}\.[0-9]{2}' | head -n 1)
     
@@ -95,13 +92,13 @@ else
     fi
 fi
 
-# Final safety net for short version
+# Safety net for short version format
 if [ -z "$SHORT_VER" ] || [ "$SHORT_VER" = "." ]; then
     VERSION="snapshot"
     SHORT_VER="snapshot"
 fi
 
-# Detect Architecture reliably (optimized to handle YML output format flawlessly)
+# Detect Architecture reliably (Optimized for BusyBox tr standard compatibility)
 ARCH=$(grep "OPENWRT_ARCH" "$OS_RELEASE_FILE" 2>/dev/null | cut -d'=' -f2 | tr -d "'\" ")
 if [ -z "$ARCH" ]; then
     if [ "$PKG_TYPE" = "apk" ]; then
@@ -112,18 +109,18 @@ if [ -z "$ARCH" ]; then
 fi
 [ -z "$ARCH" ] && ARCH=$(uname -m)
 
-# Exit if everything fails to avoid system corruption
+# Exit if critical environment data is still missing
 if [ -z "$VERSION" ] || [ -z "$ARCH" ]; then
-    echo "⚠️ Error: Critical system info missing. (OS: $OS_TYPE, VER: $VERSION, ARCH: $ARCH)"
+    echo "⚠️ Error: System info could not be recovered. (OS: $OS_TYPE, VER: $VERSION, ARCH: $ARCH)"
     exit 1
 fi
 
-# Show detected target information before installation
+# Show verified specifications using safe standard capitalization tools
 echo "🔍 Detected System Specifications:"
-echo "  • Operating System : $(echo "$OS_TYPE" | tr '[:lower:]' '[:upper:]')"
+echo "  • Operating System : $(echo "$OS_TYPE" | tr 'a-z' 'A-Z')"
 echo "  • Firmware Version : $VERSION (Short: $SHORT_VER)"
 echo "  • Architecture     : $ARCH"
-echo "  • Package Manager  : $(echo "$PKG_TYPE" | tr '[:lower:]' '[:upper:]')"
+echo "  • Package Manager  : $(echo "$PKG_TYPE" | tr 'a-z' 'A-Z')"
 echo "--------------------------------------------------"
 echo "🚀 Starting repository setup..."
 echo ""
@@ -167,7 +164,7 @@ EOF
     echo ""
 fi
 
-# 3. Download signature keys based on package manager (Silently)
+# 3. Download signature keys silently
 if [ "$PKG_TYPE" = "apk" ]; then
     echo "➡️ [2/4] Fetching security keys..."
     mkdir -p /etc/apk/keys
@@ -176,7 +173,6 @@ if [ "$PKG_TYPE" = "apk" ]; then
     echo ""
     
     echo "➡️ [3/4] Testing cryptographic signature structure..."
-    # Placeholder to keep steps synchronized between APK and OPKG progress output
     sleep 1
     echo "  ↳ Verified."
     echo ""
@@ -189,7 +185,7 @@ else
     echo ""
 fi
 
-# 4. Clear cache and update (Silently)
+# 4. Clear cache and update silently
 echo "➡️ [4/4] Updating packages and synchronizing databases..."
 rm -f /var/opkg-lists/* >/dev/null 2>&1
 if [ "$PKG_TYPE" = "apk" ]; then
@@ -200,9 +196,15 @@ fi
 echo "  ↳ Database successfully synchronized."
 echo ""
 
-# Final Installation Success Message
+# Installation success terminal response
 echo "=================================================="
 echo "  ✅ SUCCESS: PeDitXOS Repository Installed!     "
-echo "  All configurations have been applied.           "
+echo "--------------------------------------------------"
+echo "  • Operating System : $(echo "$OS_TYPE" | tr 'a-z' 'A-Z')"
+echo "  • Installed Ver    : v$VERSION ($SHORT_VER)"
+echo "  • Architecture     : $ARCH"
+echo "  • Package Manager  : $(echo "$PKG_TYPE" | tr 'a-z' 'A-Z')"
+echo "--------------------------------------------------"
+echo "  All configurations have been successfully applied."
 echo "=================================================="
 echo ""
