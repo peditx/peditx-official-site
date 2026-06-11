@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # ------------------------------------------------
-#   PeDitXOS Repository Smart Installer v4.9
+#   PeDitXOS Repository Smart Installer v5.1
 #   Server: repository.peditxos.ir (Hetzner)
 #   Author: PeDitXOS Team
 # ------------------------------------------------
@@ -13,7 +13,7 @@ fi
 export PEDITX_INSTALLER_RUNNING=1
 
 # Define the installer script version
-SCRIPT_VERSION="4.9"
+SCRIPT_VERSION="5.1"
 
 # Clear screen for a neat installation experience
 clear
@@ -114,7 +114,6 @@ if [ -f "$OS_RELEASE_FILE" ]; then
 fi
 
 if [ -z "$ARCH" ] && [ -f "/etc/opkg/distfeeds.conf" ]; then
-    # Parse existing architecture from previous config file to avoid calling opkg binary
     ARCH=$(grep -o -E '/packages/[^/]+/' /etc/opkg/distfeeds.conf 2>/dev/null | head -n 1 | cut -d'/' -f3)
 fi
 
@@ -122,7 +121,7 @@ if [ -z "$ARCH" ]; then
     if [ "$PKG_TYPE" = "apk" ]; then
         ARCH=$(apk --print-arch 2>/dev/null)
     else
-        ARCH=$(opkg print-architecture 2>/dev/null | awk '{print $2}' | grep -v 'all' | head -n 1)
+        ARCH=$(opkg info kernel 2>/dev/null | grep Architecture | awk '{print $2}')
     fi
 fi
 ARCH=$(echo "$ARCH" | tr -d "'\" \/\r\n\t")
@@ -144,7 +143,7 @@ echo "--------------------------------------------------"
 echo "🚀 Starting repository setup (Installer v$SCRIPT_VERSION)..."
 echo ""
 
-# 2. Rebuild Feeds / Repositories (All feeds strictly use full $VERSION for exact proxy path matching)
+# 2. Rebuild Feeds / Repositories based on package manager (With mandatory trailing slashes for OPKG)
 if [ "$PKG_TYPE" = "apk" ]; then
     echo "➡️ [1/4] Rebuilding official repositories (APK)..."
     mkdir -p /etc/apk
@@ -154,9 +153,9 @@ http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/lu
 http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/packages
 http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/routing
 http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/telephony
-http://repository.peditxos.ir/openwrt-passwall-build/releases/${VERSION}/packages/${ARCH}/passwall_packages
-http://repository.peditxos.ir/openwrt-passwall-build/releases/${VERSION}/packages/${ARCH}/passwall_luci
-http://repository.peditxos.ir/openwrt-passwall-build/releases/${VERSION}/packages/${ARCH}/passwall2
+http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/passwall_packages
+http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/passwall_luci
+http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/passwall2
 EOF
     echo "  ↳ Done."
     echo ""
@@ -164,20 +163,20 @@ EOF
 else
     echo "➡️ [1/4] Rebuilding official repositories (OPKG)..."
     cat <<EOF > /etc/opkg/distfeeds.conf
-src/gz ${OS_TYPE}_base http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/base
-src/gz ${OS_TYPE}_luci http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/luci
-src/gz ${OS_TYPE}_packages http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/packages
-src/gz ${OS_TYPE}_routing http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/routing
-src/gz ${OS_TYPE}_telephony http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/telephony
+src/gz ${OS_TYPE}_base http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/base/
+src/gz ${OS_TYPE}_luci http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/luci/
+src/gz ${OS_TYPE}_packages http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/packages/
+src/gz ${OS_TYPE}_routing http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/routing/
+src/gz ${OS_TYPE}_telephony http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/telephony/
 EOF
     echo "  ↳ Done."
     echo ""
 
     echo "➡️ [2/4] Setting up custom Passwall repositories..."
     cat <<EOF > /etc/opkg/customfeeds.conf
-src/gz peditxos_passwall_pkgs http://repository.peditxos.ir/openwrt-passwall-build/releases/${VERSION}/packages/${ARCH}/passwall_packages
-src/gz peditxos_passwall_luci http://repository.peditxos.ir/openwrt-passwall-build/releases/${VERSION}/packages/${ARCH}/passwall_luci
-src/gz peditxos_passwall2 http://repository.peditxos.ir/openwrt-passwall-build/releases/${VERSION}/packages/${ARCH}/passwall2
+src/gz peditxos_passwall_pkgs http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/passwall_packages/
+src/gz peditxos_passwall_luci http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/passwall_luci/
+src/gz peditxos_passwall2 http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/passwall2/
 EOF
     echo "  ↳ Done."
     echo ""
