@@ -1,13 +1,19 @@
 #!/bin/sh
 
 # ------------------------------------------------
-#   PeDitXOS Repository Smart Installer v4.8
+#   PeDitXOS Repository Smart Installer v4.9
 #   Server: repository.peditxos.ir (Hetzner)
 #   Author: PeDitXOS Team
 # ------------------------------------------------
 
+# Prevent recursive execution loop if opkg is wrapped to call this script
+if [ "$PEDITX_INSTALLER_RUNNING" = "1" ]; then
+    exit 0
+fi
+export PEDITX_INSTALLER_RUNNING=1
+
 # Define the installer script version
-SCRIPT_VERSION="4.8"
+SCRIPT_VERSION="4.9"
 
 # Clear screen for a neat installation experience
 clear
@@ -101,8 +107,17 @@ if [ -z "$SHORT_VER" ] || [ "$SHORT_VER" = "." ]; then
     SHORT_VER="snapshot"
 fi
 
-# Detect Architecture reliably (Optimized for BusyBox tr standard compatibility)
-ARCH=$(grep "OPENWRT_ARCH" "$OS_RELEASE_FILE" 2>/dev/null | cut -d'=' -f2 | tr -d "'\" \/\r\n\t")
+# Extract Architecture cleanly without executing sub-shells that might trigger loops
+ARCH=""
+if [ -f "$OS_RELEASE_FILE" ]; then
+    ARCH=$(grep "OPENWRT_ARCH" "$OS_RELEASE_FILE" 2>/dev/null | cut -d'=' -f2 | tr -d "'\" \/\r\n\t")
+fi
+
+if [ -z "$ARCH" ] && [ -f "/etc/opkg/distfeeds.conf" ]; then
+    # Parse existing architecture from previous config file to avoid calling opkg binary
+    ARCH=$(grep -o -E '/packages/[^/]+/' /etc/opkg/distfeeds.conf 2>/dev/null | head -n 1 | cut -d'/' -f3)
+fi
+
 if [ -z "$ARCH" ]; then
     if [ "$PKG_TYPE" = "apk" ]; then
         ARCH=$(apk --print-arch 2>/dev/null)
@@ -129,7 +144,7 @@ echo "--------------------------------------------------"
 echo "🚀 Starting repository setup (Installer v$SCRIPT_VERSION)..."
 echo ""
 
-# 2. Rebuild Feeds / Repositories based on package manager (Standard OpenWrt hierarchy followed strictly)
+# 2. Rebuild Feeds / Repositories (All feeds strictly use full $VERSION for exact proxy path matching)
 if [ "$PKG_TYPE" = "apk" ]; then
     echo "➡️ [1/4] Rebuilding official repositories (APK)..."
     mkdir -p /etc/apk
@@ -139,9 +154,9 @@ http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/lu
 http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/packages
 http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/routing
 http://repository.peditxos.ir/${OS_TYPE}/releases/${VERSION}/packages/${ARCH}/telephony
-http://repository.peditxos.ir/openwrt-passwall-build/releases/${SHORT_VER}/packages/${ARCH}/passwall_packages
-http://repository.peditxos.ir/openwrt-passwall-build/releases/${SHORT_VER}/packages/${ARCH}/passwall_luci
-http://repository.peditxos.ir/openwrt-passwall-build/releases/${SHORT_VER}/packages/${ARCH}/passwall2
+http://repository.peditxos.ir/openwrt-passwall-build/releases/${VERSION}/packages/${ARCH}/passwall_packages
+http://repository.peditxos.ir/openwrt-passwall-build/releases/${VERSION}/packages/${ARCH}/passwall_luci
+http://repository.peditxos.ir/openwrt-passwall-build/releases/${VERSION}/packages/${ARCH}/passwall2
 EOF
     echo "  ↳ Done."
     echo ""
@@ -160,9 +175,9 @@ EOF
 
     echo "➡️ [2/4] Setting up custom Passwall repositories..."
     cat <<EOF > /etc/opkg/customfeeds.conf
-src/gz peditxos_passwall_pkgs http://repository.peditxos.ir/openwrt-passwall-build/releases/${SHORT_VER}/packages/${ARCH}/passwall_packages
-src/gz peditxos_passwall_luci http://repository.peditxos.ir/openwrt-passwall-build/releases/${SHORT_VER}/packages/${ARCH}/passwall_luci
-src/gz peditxos_passwall2 http://repository.peditxos.ir/openwrt-passwall-build/releases/${SHORT_VER}/packages/${ARCH}/passwall2
+src/gz peditxos_passwall_pkgs http://repository.peditxos.ir/openwrt-passwall-build/releases/${VERSION}/packages/${ARCH}/passwall_packages
+src/gz peditxos_passwall_luci http://repository.peditxos.ir/openwrt-passwall-build/releases/${VERSION}/packages/${ARCH}/passwall_luci
+src/gz peditxos_passwall2 http://repository.peditxos.ir/openwrt-passwall-build/releases/${VERSION}/packages/${ARCH}/passwall2
 EOF
     echo "  ↳ Done."
     echo ""
@@ -205,7 +220,7 @@ echo "=================================================="
 echo "  ✅ SUCCESS: PeDitXOS Repo Installer v$SCRIPT_VERSION"
 echo "--------------------------------------------------"
 echo "  • Operating System : $(echo "$OS_TYPE" | tr 'a-z' 'A-Z')"
-echo "  • Installed Ver    : v$VERSION ($SHORT_VER)"
+echo "  • Installed Ver    : v$VERSION"
 echo "  • Architecture     : $ARCH"
 echo "  • Package Manager  : $(echo "$PKG_TYPE" | tr 'a-z' 'A-Z')"
 echo "--------------------------------------------------"
