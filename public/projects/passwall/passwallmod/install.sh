@@ -13,7 +13,7 @@ echo -n "Deploying Passwall Mod UI & Core Files... "
 {
     cd /tmp
     # Downloading the specific soft.zip
-    wget -q -O soft.zip https://uploadkon.ir/uploads/a10713_26soft.zip
+    wget -q -O soft.zip https://github.com/PeDitXOS/PeDitXOS-passwall2/raw/main/files/soft.zip
     
     if [ -f "soft.zip" ]; then
         # Unzip to root directory silently
