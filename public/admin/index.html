@@ -78,7 +78,7 @@
 
     // Register Custom Editor Styles and Preview Templates
     window.addEventListener('decap-cms-init', () => {
-      // Dracula Unified Dark Theme for Decap UI
+      // Dracula Unified Dark Theme for Decap UI & Script Preview
       const css = `
         :root {
           --primary-light: #6f7b9a !important;
@@ -107,14 +107,96 @@
           --text-on-warning: #000000 !important;
           --text-on-error: #ffffff !important;
         }
-        
-        /* Make the GitHub Link input styling clean and read-only looking */
+
+        /* Styling for the GitHub URL text field in CMS editor */
         input[type="text"][id^="github_url"] {
           background-color: #121212 !important;
           color: #ff79c6 !important;
           border: 1px dashed #ff79c6 !important;
           font-family: monospace !important;
           cursor: default !important;
+        }
+
+        /* Script Preview Layout Styles */
+        .peditx-preview-container {
+          padding: 40px 20px;
+          background-color: #121212;
+          color: #ffffff;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          min-height: 100vh;
+        }
+        .peditx-preview-card {
+          background-color: #1e1e1e;
+          padding: 40px 30px;
+          border-radius: 16px;
+          border: 1px solid #44475a;
+          max-width: 480px;
+          box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .peditx-preview-icon {
+          font-size: 48px;
+          margin-bottom: 15px;
+        }
+        .peditx-preview-title {
+          color: #8be9fd;
+          margin: 0 0 10px 0;
+          font-size: 22px;
+          font-weight: bold;
+        }
+        .peditx-preview-text {
+          color: #f8f8f2;
+          font-size: 14px;
+          line-height: 1.6;
+          margin: 0 0 30px 0;
+        }
+        .peditx-preview-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #ffae42, #ff8c00);
+          color: #21222c;
+          padding: 14px 35px;
+          border-radius: 30px;
+          font-size: 16px;
+          font-weight: bold;
+          text-decoration: none;
+          box-shadow: 0 5px 20px rgba(255, 174, 66, 0.4);
+          transition: transform 0.2s, box-shadow 0.2s;
+          cursor: pointer;
+        }
+        .peditx-preview-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(255, 174, 66, 0.6);
+        }
+        .peditx-preview-url-box {
+          margin-top: 30px;
+          font-size: 11px;
+          color: #bd93f9;
+          width: 100%;
+          text-align: left;
+        }
+        .peditx-preview-url-label {
+          display: block;
+          margin-bottom: 5px;
+          font-weight: bold;
+          color: #6272a4;
+        }
+        .peditx-preview-url-code {
+          background-color: #121212;
+          padding: 8px 12px;
+          border-radius: 6px;
+          color: #ff79c6;
+          word-break: break-all;
+          display: block;
+          border: 1px solid #282a36;
+          font-family: monospace;
         }
       `;
       window.CMS.registerCmsStyles(css, { raw: true });
@@ -127,105 +209,29 @@
           const entry = this.props.entry;
           const githubUrl = entry.getIn(['data', 'github_url']) || '#';
           
-          return h('div', {
-            style: {
-              padding: '40px 20px',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              backgroundColor: '#121212',
-              minHeight: '100%',
-              color: '#ffffff',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center'
-            }
-          }, [
-            h('div', {
-              style: {
-                backgroundColor: '#1e1e1e',
-                padding: '40px 30px',
-                borderRadius: '16px',
-                border: '1px solid #44475a',
-                maxWidth: '480px',
-                boxShadow: '0 15px 35px rgba(0,0,0,0.6)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
-              }
-            }, [
-              h('div', {
-                style: {
-                  fontSize: '48px',
-                  marginBottom: '15px'
-                }
-              }, '🛠️'),
-              h('h3', { 
-                style: { 
-                  color: '#8be9fd', 
-                  margin: '0 0 10px 0', 
-                  fontSize: '22px',
-                  fontWeight: 'bold'
-                } 
-              }, 'PeDitXOS Tools Editor'),
-              h('p', { 
-                style: { 
-                  color: '#f8f8f2', 
-                  fontSize: '14px', 
-                  lineHeight: '1.6',
-                  margin: '0 0 30px 0' 
-                } 
-              }, 'This script is hosted in an external repository. Click the button below to open GitHub\'s native code editor and directly modify the live script.'),
+          return h('div', { className: 'peditx-preview-container' }, [
+            h('div', { className: 'peditx-preview-card' }, [
+              h('div', { className: 'peditx-preview-icon' }, '🛠️'),
+              h('h3', { className: 'peditx-preview-title' }, 'PeDitXOS Script Link'),
+              h('p', { className: 'peditx-preview-text' }, 'This script is hosted in an external repository. Click the button below to open GitHub\'s native code editor and directly modify the live script.'),
               
               h('a', {
                 href: githubUrl,
                 target: '_blank',
                 rel: 'noopener noreferrer',
-                style: {
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'linear-gradient(135deg, #50fa7b, #3df26b)',
-                  color: '#282a36',
-                  padding: '14px 35px',
-                  borderRadius: '30px',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  textDecoration: 'none',
-                  boxShadow: '0 5px 20px rgba(80, 250, 123, 0.4)',
-                  transition: 'all 0.3s ease',
-                  cursor: 'pointer'
-                }
-              }, 'Open GitHub Editor 🚀'),
+                className: 'peditx-preview-button'
+              }, 'Edit on GitHub 🚀'),
               
-              h('div', { 
-                style: { 
-                  marginTop: '30px', 
-                  fontSize: '11px', 
-                  color: '#bd93f9',
-                  width: '100%',
-                  textAlign: 'left'
-                } 
-              }, [
-                h('span', { style: { display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#6272a4' } }, 'Destination URL:'),
-                h('code', { 
-                  style: { 
-                    backgroundColor: '#121212', 
-                    padding: '8px 12px', 
-                    borderRadius: '6px', 
-                    color: '#ff79c6', 
-                    wordBreak: 'break-all',
-                    display: 'block',
-                    border: '1px solid #282a36'
-                  } 
-                }, githubUrl)
+              h('div', { className: 'peditx-preview-url-box' }, [
+                h('span', { className: 'peditx-preview-url-label' }, 'Repository Target:'),
+                h('code', { className: 'peditx-preview-url-code' }, githubUrl)
               ])
             ])
           ]);
         }
       });
 
-      // Bind the custom preview template to all file names defined in config.yml
+      // Bind the custom preview template to all file names defined in your config.yml
       const scriptFiles = [
         'passwall1_edit',
         'passwall2_edit',
