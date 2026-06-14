@@ -58,8 +58,8 @@
   </style>
 </head>
 <body>
-  <!-- Load Decap CMS -->
-  <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+  <!-- Load Decap CMS using fallback-safe CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/decap-cms@3.0.0/dist/decap-cms.js"></script>
 
   <script>
     // Register Service Worker on window load
@@ -128,6 +128,7 @@
           justify-content: center;
           text-align: center;
           min-height: 100vh;
+          box-sizing: border-box;
         }
         .peditx-preview-card {
           background-color: #1e1e1e;
@@ -156,6 +157,13 @@
           line-height: 1.6;
           margin: 0 0 30px 0;
         }
+        
+        @keyframes buttonPulse {
+          0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 174, 66, 0.7); }
+          70% { transform: scale(1.03); box-shadow: 0 0 0 12px rgba(255, 174, 66, 0); }
+          100% { transform: scale(1); }
+        }
+
         .peditx-preview-button {
           display: inline-flex;
           align-items: center;
@@ -170,9 +178,11 @@
           box-shadow: 0 5px 20px rgba(255, 174, 66, 0.4);
           transition: transform 0.2s, box-shadow 0.2s;
           cursor: pointer;
+          animation: buttonPulse 2.5s infinite;
         }
         .peditx-preview-button:hover {
           transform: translateY(-2px);
+          animation-play-state: paused;
           box-shadow: 0 8px 25px rgba(255, 174, 66, 0.6);
         }
         .peditx-preview-url-box {
@@ -200,13 +210,14 @@
         }
       `;
       window.CMS.registerCmsStyles(css, { raw: true });
-      console.log('Dracula theme registered.');
+      console.log('Dracula theme styles applied.');
 
       // Inline React implementation for the Custom Script Preview
       const h = window.h;
       const ScriptPreview = window.createClass({
         render: function() {
           const entry = this.props.entry;
+          // Dynamically read 'github_url' from the active file entry
           const githubUrl = entry.getIn(['data', 'github_url']) || '#';
           
           return h('div', { className: 'peditx-preview-container' }, [
@@ -223,7 +234,7 @@
               }, 'Edit on GitHub 🚀'),
               
               h('div', { className: 'peditx-preview-url-box' }, [
-                h('span', { className: 'peditx-preview-url-label' }, 'Repository Target:'),
+                h('span', { className: 'peditx-preview-url-label' }, 'Repository Target URL:'),
                 h('code', { className: 'peditx-preview-url-code' }, githubUrl)
               ])
             ])
@@ -231,20 +242,10 @@
         }
       });
 
-      // Bind the custom preview template to all file names defined in your config.yml
-      const scriptFiles = [
-        'passwall1_edit',
-        'passwall2_edit',
-        'passwall_both_edit',
-        'ezexroot_edit',
-        'expand_edit',
-        'service_runner_edit'
-      ];
-
-      scriptFiles.forEach(fileName => {
-        window.CMS.registerPreviewTemplate(fileName, ScriptPreview);
-      });
-      console.log('Script preview templates successfully registered.');
+      // KEY FIX: Register template against the COLLECTION name 'peditxos_tools'
+      // This ensures that all files under this collection automatically render this view!
+      window.CMS.registerPreviewTemplate('peditxos_tools', ScriptPreview);
+      console.log('Script preview template successfully registered under "peditxos_tools".');
     });
   </script>
 </body>
