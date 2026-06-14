@@ -209,43 +209,56 @@
           font-family: monospace;
         }
       `;
-      window.CMS.registerCmsStyles(css, { raw: true });
-      console.log('Dracula theme styles applied.');
+      
+      const CMS = window.CMS;
+      CMS.registerCmsStyles(css, { raw: true });
+      console.log('Dracula theme styles applied successfully.');
 
-      // Inline React implementation for the Custom Script Preview
-      const h = window.h;
-      const ScriptPreview = window.createClass({
-        render: function() {
-          const entry = this.props.entry;
-          // Dynamically read 'github_url' from the active file entry
-          const githubUrl = entry.getIn(['data', 'github_url']) || '#';
-          
-          return h('div', { className: 'peditx-preview-container' }, [
-            h('div', { className: 'peditx-preview-card' }, [
-              h('div', { className: 'peditx-preview-icon' }, '🛠️'),
-              h('h3', { className: 'peditx-preview-title' }, 'PeDitXOS Script Link'),
-              h('p', { className: 'peditx-preview-text' }, 'This script is hosted in an external repository. Click the button below to open GitHub\'s native code editor and directly modify the live script.'),
-              
-              h('a', {
-                href: githubUrl,
-                target: '_blank',
-                rel: 'noopener noreferrer',
-                className: 'peditx-preview-button'
-              }, 'Edit on GitHub 🚀'),
-              
-              h('div', { className: 'peditx-preview-url-box' }, [
-                h('span', { className: 'peditx-preview-url-label' }, 'Repository Target URL:'),
-                h('code', { className: 'peditx-preview-url-code' }, githubUrl)
-              ])
+      // ES6 Functional React component to ensure full compatibility with Decap CMS v3
+      const h = window.h || window.React.createElement;
+      const ScriptPreview = (props) => {
+        const entry = props.entry;
+        const githubUrl = entry.getIn(['data', 'github_url']) || '#';
+        
+        return h('div', { className: 'peditx-preview-container', key: 'container' }, [
+          h('div', { className: 'peditx-preview-card', key: 'card' }, [
+            h('div', { className: 'peditx-preview-icon', key: 'icon' }, '🛠️'),
+            h('h3', { className: 'peditx-preview-title', key: 'title' }, 'PeDitXOS Script Link'),
+            h('p', { className: 'peditx-preview-text', key: 'text' }, 'This script is hosted in an external repository. Click the button below to open GitHub\'s native code editor and directly modify the live script.'),
+            
+            h('a', {
+              href: githubUrl,
+              target: '_blank',
+              rel: 'noopener noreferrer',
+              className: 'peditx-preview-button',
+              key: 'link-btn'
+            }, 'Edit on GitHub 🚀'),
+            
+            h('div', { className: 'peditx-preview-url-box', key: 'box' }, [
+              h('span', { className: 'peditx-preview-url-label', key: 'lbl' }, 'Repository Target URL:'),
+              h('code', { className: 'peditx-preview-url-code', key: 'code' }, githubUrl)
             ])
-          ]);
-        }
+          ])
+        ]);
+      };
+
+      // Register the template on the collection name
+      CMS.registerPreviewTemplate('peditxos_tools', ScriptPreview);
+      
+      // Also register on individual file names as an absolute fail-safe fallback
+      const scriptFiles = [
+        'passwall1_edit',
+        'passwall2_edit',
+        'passwall_both_edit',
+        'ezexroot_edit',
+        'expand_edit',
+        'service_runner_edit'
+      ];
+      scriptFiles.forEach(fileName => {
+        CMS.registerPreviewTemplate(fileName, ScriptPreview);
       });
 
-      // KEY FIX: Register template against the COLLECTION name 'peditxos_tools'
-      // This ensures that all files under this collection automatically render this view!
-      window.CMS.registerPreviewTemplate('peditxos_tools', ScriptPreview);
-      console.log('Script preview template successfully registered under "peditxos_tools".');
+      console.log('Script preview templates successfully loaded.');
     });
   </script>
 </body>
