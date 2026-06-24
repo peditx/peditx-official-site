@@ -1,14 +1,14 @@
 #!/bin/sh
 
 # ------------------------------------------------
-#   PeDitXOS Repository Smart Installer v7.2
+#   PeDitXOS Repository Smart Installer v7.3
 #   Server: repository.peditxos.ir (Hetzner)
 #   Author: PeDitXOS Team
 # ------------------------------------------------
 
 if [ "$PEDITX_INSTALLER_RUNNING" = "1" ]; then exit 0; fi
 export PEDITX_INSTALLER_RUNNING=1
-SCRIPT_VERSION="7.2"
+SCRIPT_VERSION="7.3"
 clear
 
 # --- System Detection ---
@@ -52,32 +52,24 @@ if [ "$PKG_TYPE" = "apk" ]; then
     echo "➡️ [1/4] Configuring APK repositories..."
     mkdir -p /etc/apk/repositories.d
     
-    # 1. Add PeDitXOS Base Repos
-    PEDITX_BASE="http://repository.peditxos.ir/openwrt/releases/${VERSION}/packages/${ARCH}"
+    # FIX: For APK, we only specify the directory BEFORE the architecture folder.
+    # APK will automatically append /${ARCH}/APKINDEX.tar.gz dynamically.
     cat <<EOF > /etc/apk/repositories.d/peditxos.list
-${PEDITX_BASE}/base
-${PEDITX_BASE}/luci
-${PEDITX_BASE}/packages
-${PEDITX_BASE}/routing
-${PEDITX_BASE}/telephony
+http://repository.peditxos.ir/openwrt/releases/${VERSION}/packages
 EOF
 
-    # 2. Add Passwall Repos (Direct ADB links as per official docs)
-    PASSWALL_FEEDS="passwall_luci passwall_packages passwall2"
+    # 2. Add Passwall Repos (Clean direct links for modern apk architecture)
     > /etc/apk/repositories.d/customfeeds.list
     
+    # FIX: Pointing to the directory level. APK automatically tracks its indexes natively.
     if [ "$SHORT_VER" = "snapshot" ]; then
-        for feed in $PASSWALL_FEEDS; do
-            echo "http://repository.peditxos.ir/openwrt-passwall-build/snapshots/packages/${ARCH}/${feed}/packages.adb" >> /etc/apk/repositories.d/customfeeds.list
-        done
+        echo "http://repository.peditxos.ir/openwrt-passwall-build/snapshots/packages" >> /etc/apk/repositories.d/customfeeds.list
     else
-        for feed in $PASSWALL_FEEDS; do
-            echo "http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/${feed}/packages.adb" >> /etc/apk/repositories.d/customfeeds.list
-        done
+        echo "http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}" >> /etc/apk/repositories.d/customfeeds.list
     fi
     
     chmod 644 /etc/apk/repositories.d/*.list
-    echo "  ↳ Done."
+    echo "   ↳ Done."
 
 else
     echo "➡️ [1/4] Configuring OPKG repositories..."
@@ -97,7 +89,7 @@ src/gz peditxos_passwall_luci ${PASSWALL_OPKG_BASE}/passwall_luci/
 src/gz peditxos_passwall_pkgs ${PASSWALL_OPKG_BASE}/passwall_packages/
 src/gz peditxos_passwall2 ${PASSWALL_OPKG_BASE}/passwall2/
 EOF
-    echo "  ↳ Done."
+    echo "   ↳ Done."
 fi
 
 # --- Keys & Update ---
@@ -106,30 +98,33 @@ if [ "$PKG_TYPE" = "apk" ]; then
     mkdir -p /etc/apk/keys
     wget -qO /etc/apk/keys/peditxos-apk.pub http://repository.peditxos.ir/apk.pub 2>/dev/null || true
     chmod 644 /etc/apk/keys/*.pub 2>/dev/null
-    echo "  ↳ Done."
+    echo "   ↳ Done."
     
     echo "➡️ [3/4] Verifying signature structure..."
-    sleep 1 && echo "  ↳ Verified."
+    sleep 1 && echo "   ↳ Verified."
     
     echo "➡️ [4/4] Updating package database..."
+    # Deep cleaning the corrupted caches built by old path formats
     rm -rf /var/cache/apk/* /tmp/apk-* 2>/dev/null
-    apk update --allow-untrusted >/dev/null 2>&1 || true
-    echo "  ↳ Database synchronized."
+    
+    # Executing clean explicit sync
+    apk update --allow-untrusted
+    echo "   ↳ Database synchronized."
 else
     echo "➡️ [2/4] Adding OPKG keys..."
     wget -qO /tmp/ipk.pub http://repository.peditxos.ir/openwrt-passwall-build/ipk.pub 2>/dev/null
     opkg-key add /tmp/ipk.pub >/dev/null 2>&1 && rm -f /tmp/ipk.pub
-    echo "  ↳ Done."
+    echo "   ↳ Done."
     
     echo "➡️ [3/4] Updating lists..."
     timeout 60 opkg update >/dev/null 2>&1 || true
-    echo "  ↳ Lists updated."
+    echo "   ↳ Lists updated."
 fi
 
 echo "=================================================="
-echo "  ✅ SUCCESS: PeDitXOS Repo Installer v$SCRIPT_VERSION"
+echo "   ✅ SUCCESS: PeDitXOS Repo Installer v$SCRIPT_VERSION"
 echo "--------------------------------------------------"
-echo "  • OS: $OS_TYPE | Ver: $VERSION | Arch: $ARCH"
-echo "  • Engine: $PKG_TYPE"
-echo "  • Source: repository.peditxos.ir (Official Mirror)"
+echo "   • OS: $OS_TYPE | Ver: $VERSION | Arch: $ARCH"
+echo "   • Engine: $PKG_TYPE"
+echo "   • Source: repository.peditxos.ir (Official Mirror)"
 echo "=================================================="
