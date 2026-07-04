@@ -1,0 +1,23 @@
+{
+  "id": "steam_community",
+  "name": "Steam Community",
+  "version": "1.0",
+  "network": "tcp,udp",
+  "protocol": [
+    "http",
+    "tls"
+  ],
+  "domains": [
+    "steamcommunity.com",
+    "steamcdn-a.akamaihd.net",
+    "steamstatic.com",
+    "domain:steamcommunity.com",
+    "domain:steamstatic.com"
+  ],
+  "ips": [
+    "162.254.192.0/21",
+    "23.33.0.0/16",
+    "geoip:ir"
+  ],
+  "ports": "443,8080"
+}

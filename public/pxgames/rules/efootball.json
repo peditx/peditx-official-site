@@ -1,0 +1,24 @@
+{
+  "id": "efootball",
+  "name": "eFootball",
+  "version": "1.0",
+  "network": "tcp,udp",
+  "protocol": [
+    "http",
+    "tls"
+  ],
+  "domains": [
+    "konami.com",
+    "efootball.konami.net",
+    "efootball.jp",
+    "e-football.club",
+    "domain:konami.com",
+    "domain:efootball.konami.net"
+  ],
+  "ips": [
+    "202.67.32.0/19",
+    "125.60.0.0/16",
+    "geoip:ir"
+  ],
+  "ports": "443,8080,10080-10090"
+}

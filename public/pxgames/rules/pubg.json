@@ -1,0 +1,26 @@
+{
+  "id": "pubg",
+  "name": "PUBG Mobile",
+  "version": "1.0",
+  "network": "tcp,udp",
+  "protocol": [
+    "http",
+    "tls"
+  ],
+  "domains": [
+    "pubgmobile.com",
+    "pubg.com",
+    "tencent.com",
+    "tencent-cloud.net",
+    "gtimg.com",
+    "domain:pubgmobile.com",
+    "domain:tencent.com"
+  ],
+  "ips": [
+    "101.91.0.0/16",
+    "103.235.44.0/22",
+    "112.60.0.0/16",
+    "geoip:ir"
+  ],
+  "ports": "8080,8443,10012,17000-17500"
+}

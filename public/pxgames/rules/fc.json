@@ -1,0 +1,26 @@
+{
+  "id": "fc",
+  "name": "EA FC (FIFA)",
+  "version": "1.0",
+  "network": "tcp,udp",
+  "protocol": [
+    "http",
+    "tls"
+  ],
+  "domains": [
+    "ea.com",
+    "eaassets.com",
+    "origin.com",
+    "fifaportal.com",
+    "domain:ea.com",
+    "domain:eaassets.com",
+    "domain:origin.com"
+  ],
+  "ips": [
+    "159.153.0.0/16",
+    "153.254.86.0/24",
+    "23.36.0.0/14",
+    "geoip:ir"
+  ],
+  "ports": "42127,443,8080,9988,17900-17910"
+}

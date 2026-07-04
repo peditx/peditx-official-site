@@ -1,0 +1,114 @@
+{
+  "version": "1.0",
+  "base_url": "https://peditx.ir/pxgames",
+  "updated": "2026-07-04",
+  "geoip_url": "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat",
+  "geosite_url": "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat",
+  "rules": [
+    {
+      "id": "valorant",
+      "name": "Valorant",
+      "icon": "🎯",
+      "version": "1.0",
+      "file": "rules/valorant.json"
+    },
+    {
+      "id": "pubg",
+      "name": "PUBG Mobile",
+      "icon": "🔫",
+      "version": "1.0",
+      "file": "rules/pubg.json"
+    },
+    {
+      "id": "fortnite",
+      "name": "Fortnite",
+      "icon": "🏗️",
+      "version": "1.0",
+      "file": "rules/fortnite.json"
+    },
+    {
+      "id": "csgo",
+      "name": "CS2 / CS:GO",
+      "icon": "💣",
+      "version": "1.0",
+      "file": "rules/csgo.json"
+    },
+    {
+      "id": "lol",
+      "name": "League of Legends",
+      "icon": "⚔️",
+      "version": "1.0",
+      "file": "rules/lol.json"
+    },
+    {
+      "id": "overwatch",
+      "name": "Overwatch 2",
+      "icon": "🤖",
+      "version": "1.0",
+      "file": "rules/overwatch.json"
+    },
+    {
+      "id": "fc",
+      "name": "EA FC (FIFA)",
+      "icon": "⚽",
+      "version": "1.0",
+      "file": "rules/fc.json"
+    },
+    {
+      "id": "efootball",
+      "name": "eFootball",
+      "icon": "🏃",
+      "version": "1.0",
+      "file": "rules/efootball.json"
+    },
+    {
+      "id": "cod",
+      "name": "Call of Duty",
+      "icon": "🎖️",
+      "version": "1.0",
+      "file": "rules/cod.json"
+    },
+    {
+      "id": "mortal_kombat",
+      "name": "Mortal Kombat",
+      "icon": "🥊",
+      "version": "1.0",
+      "file": "rules/mortal_kombat.json"
+    },
+    {
+      "id": "rockstar",
+      "name": "Rockstar (GTA)",
+      "icon": "🏎️",
+      "version": "1.0",
+      "file": "rules/rockstar.json"
+    },
+    {
+      "id": "epic_games",
+      "name": "Epic Games",
+      "icon": "🎮",
+      "version": "1.0",
+      "file": "rules/epic_games.json"
+    },
+    {
+      "id": "steam",
+      "name": "Steam",
+      "icon": "🚂",
+      "version": "1.0",
+      "file": "rules/steam.json"
+    },
+    {
+      "id": "steam_community",
+      "name": "Steam Community",
+      "icon": "👥",
+      "version": "1.0",
+      "file": "rules/steam_community.json"
+    },
+    {
+      "id": "riot",
+      "name": "Riot Games",
+      "icon": "🏴‍☠️",
+      "version": "1.0",
+      "file": "rules/riot.json"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "id": "csgo",
+  "name": "CS2 / CS:GO",
+  "version": "1.0",
+  "network": "tcp,udp",
+  "protocol": [
+    "http",
+    "tls"
+  ],
+  "domains": [
+    "steampowered.com",
+    "steamcommunity.com",
+    "valvesoftware.com",
+    "steamgames.com",
+    "steamcontent.com",
+    "domain:steampowered.com",
+    "domain:steamcommunity.com"
+  ],
+  "ips": [
+    "162.254.192.0/21",
+    "208.64.200.0/22",
+    "205.196.6.0/24",
+    "geoip:ir"
+  ],
+  "ports": "27015-27050,4380,27036"
+}

@@ -1,0 +1,25 @@
+{
+  "id": "overwatch",
+  "name": "Overwatch 2",
+  "version": "1.0",
+  "network": "tcp,udp",
+  "protocol": [
+    "http",
+    "tls"
+  ],
+  "domains": [
+    "battle.net",
+    "blizzard.com",
+    "worldofwarcraft.com",
+    "overwatch.com",
+    "domain:battle.net",
+    "domain:blizzard.com"
+  ],
+  "ips": [
+    "12.129.0.0/16",
+    "137.221.0.0/16",
+    "195.12.0.0/16",
+    "geoip:ir"
+  ],
+  "ports": "1119,3724,6112-6114,8080,10800-10810"
+}

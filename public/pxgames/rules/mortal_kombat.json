@@ -1,0 +1,23 @@
+{
+  "id": "mortal_kombat",
+  "name": "Mortal Kombat",
+  "version": "1.0",
+  "network": "tcp,udp",
+  "protocol": [
+    "http",
+    "tls"
+  ],
+  "domains": [
+    "warnerbrosgames.com",
+    "mortalkombat.com",
+    "netherrealm.com",
+    "domain:warnerbrosgames.com",
+    "domain:mortalkombat.com"
+  ],
+  "ips": [
+    "34.64.0.0/10",
+    "23.0.0.0/12",
+    "geoip:ir"
+  ],
+  "ports": "443,8080,3074,5000-5100"
+}

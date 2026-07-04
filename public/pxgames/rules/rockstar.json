@@ -1,0 +1,24 @@
+{
+  "id": "rockstar",
+  "name": "Rockstar (GTA)",
+  "version": "1.0",
+  "network": "tcp,udp",
+  "protocol": [
+    "http",
+    "tls"
+  ],
+  "domains": [
+    "rockstargames.com",
+    "socialclub.rockstargames.com",
+    "gtav.com",
+    "domain:rockstargames.com",
+    "domain:socialclub.rockstargames.com"
+  ],
+  "ips": [
+    "192.81.240.0/20",
+    "185.51.100.0/24",
+    "192.81.241.0/24",
+    "geoip:ir"
+  ],
+  "ports": "6672,61455-61458,8080,443"
+}

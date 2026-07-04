@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PXgames - Game Rules</title>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#0a0a1a 0%,#151530 50%,#0a0a1a 100%);color:#e0e0e0;min-height:100vh}
+        .wrap{max-width:960px;margin:0 auto;padding:20px}
+        .hdr{text-align:center;padding:32px 0 24px}
+        .hdr h1{font-size:2em;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+        .hdr .sub{opacity:.5;font-size:13px}
+        .bar{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px 18px;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+        .bar .info{font-size:12px;opacity:.6}
+        .bar .info b{color:#60a5fa}
+        .btn{padding:9px 20px;border:none;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;font-weight:600;font-size:13px;cursor:pointer;transition:.3s}
+        .btn:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(59,130,246,.35)}
+        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+        .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:18px;transition:.3s}
+        .card:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.12);transform:translateY(-2px)}
+        .card .icon{font-size:28px;margin-bottom:8px}
+        .card .name{font-size:16px;font-weight:600;margin-bottom:3px}
+        .card .ver{font-size:11px;color:#60a5fa}
+        .card .cnt{font-size:11px;opacity:.4;margin-top:8px}
+        .ft{text-align:center;padding:32px 0 16px;opacity:.3;font-size:11px}
+        .geo{margin-top:24px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px 18px}
+        .geo h3{font-size:14px;margin-bottom:10px;opacity:.7}
+        .geo .links{display:flex;gap:10px;flex-wrap:wrap}
+        .geo .links a{font-size:12px;color:#60a5fa;text-decoration:none;padding:6px 12px;border:1px solid rgba(96,165,250,.3);border-radius:6px;transition:.2s}
+        .geo .links a:hover{background:rgba(96,165,250,.1)}
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="hdr">
+        <h1>🎮 PXgames</h1>
+        <div class="sub">Game Rules Collection</div>
+    </div>
+    <div class="bar">
+        <div class="info">
+            Version: <b id="v">1.0</b> |
+            Updated: <b id="d">-</b> |
+            Games: <b id="n">0</b>
+        </div>
+        <button class="btn" onclick="loadData()">🔄 Refresh</button>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="geo">
+        <h3>📦 GeoIP / Geosite Data</h3>
+        <div class="links">
+            <a id="geoip-link" href="#">⬇️ geoip.dat</a>
+            <a id="geosite-link" href="#">⬇️ geosite.dat</a>
+        </div>
+    </div>
+    <div class="ft">PXgames Game Rules © 2026 | peditx.ir</div>
+</div>
+<script>
+async function loadData(){
+    try{
+        const r=await fetch('rules.json');
+        const d=await r.json();
+        document.getElementById('v').textContent=d.version||'-';
+        document.getElementById('d').textContent=d.updated||'-';
+        document.getElementById('n').textContent=d.rules?d.rules.length:0;
+        if(d.geoip_url)document.getElementById('geoip-link').href=d.geoip_url;
+        if(d.geosite_url)document.getElementById('geosite-link').href=d.geosite_url;
+        const g=document.getElementById('grid');g.innerHTML='';
+        (d.rules||[]).forEach(r=>{
+            g.innerHTML+=`<div class="card"><div class="icon">${r.icon||'🎮'}</div><div class="name">${r.name}</div><div class="ver">v${r.version||'?'}</div><div class="cnt">${r.file||''}</div></div>`;
+        });
+    }catch(e){console.error(e)}
+}
+loadData();
+</script>
+</body>
+</html>

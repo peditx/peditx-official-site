@@ -1,0 +1,22 @@
+{
+  "id": "lol",
+  "name": "League of Legends",
+  "version": "1.0",
+  "network": "tcp,udp",
+  "protocol": [
+    "http",
+    "tls"
+  ],
+  "domains": [
+    "leagueoflegends.com",
+    "riot.net",
+    "domain:leagueoflegends.com",
+    "domain:riot.net"
+  ],
+  "ips": [
+    "104.160.128.0/17",
+    "192.64.170.0/24",
+    "geoip:ir"
+  ],
+  "ports": "5000-5500,8393,27017"
+}

@@ -1,0 +1,25 @@
+{
+  "id": "riot",
+  "name": "Riot Games",
+  "version": "1.0",
+  "network": "tcp,udp",
+  "protocol": [
+    "http",
+    "tls"
+  ],
+  "domains": [
+    "riot.net",
+    "leagueoflegends.com",
+    "valorant.com",
+    "riotcdn.net",
+    "riotgames.net",
+    "domain:riot.net",
+    "domain:valorant.com"
+  ],
+  "ips": [
+    "104.160.128.0/17",
+    "162.249.72.0/24",
+    "geoip:ir"
+  ],
+  "ports": "443,8393,27015-27100"
+}

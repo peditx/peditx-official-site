@@ -1,0 +1,25 @@
+{
+  "id": "cod",
+  "name": "Call of Duty",
+  "version": "1.0",
+  "network": "tcp,udp",
+  "protocol": [
+    "http",
+    "tls"
+  ],
+  "domains": [
+    "callofduty.com",
+    "activision.com",
+    "activision.com.edgesuite.net",
+    "infinityward.com",
+    "domain:callofduty.com",
+    "domain:activision.com"
+  ],
+  "ips": [
+    "209.222.0.0/16",
+    "192.81.240.0/20",
+    "34.64.0.0/10",
+    "geoip:ir"
+  ],
+  "ports": "3074,3075,443,8080,10070-10080"
+}

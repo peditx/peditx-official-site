@@ -1,0 +1,25 @@
+{
+  "id": "epic_games",
+  "name": "Epic Games",
+  "version": "1.0",
+  "network": "tcp,udp",
+  "protocol": [
+    "http",
+    "tls"
+  ],
+  "domains": [
+    "epicgames.com",
+    "unrealengine.com",
+    "epic-games.com",
+    "fortnite.com",
+    "domain:epicgames.com",
+    "domain:unrealengine.com"
+  ],
+  "ips": [
+    "23.0.0.0/12",
+    "34.64.0.0/10",
+    "52.0.0.0/8",
+    "geoip:ir"
+  ],
+  "ports": "443,5222,8080,9000-9100"
+}
