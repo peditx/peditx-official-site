@@ -114,7 +114,7 @@ fi
 if [ "$PKG_TYPE" = "apk" ]; then
     echo "➡️ [2/4] Fetching security keys..."
     mkdir -p /etc/apk/keys
-    wget -qO /etc/apk/keys/peditxos-apk.pub http://repository.peditxos.ir/apk.pub 2>/dev/null || true
+    wget -qO /etc/apk/keys/peditxos-apk.pub http://repository.peditxos.ir/openwrt-passwall-build/apk.pub 2>/dev/null || true
     chmod 644 /etc/apk/keys/*.pub 2>/dev/null
     echo "   ↳ Done."
 
