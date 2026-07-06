@@ -80,9 +80,13 @@ if [ "$PKG_TYPE" = "apk" ]; then
     # --- Step B: Add Passwall repos as CUSTOM (separate file) ---
     mkdir -p "$REPO_DIR"
     if [ "$SHORT_VER" = "snapshot" ]; then
-        echo "http://repository.peditxos.ir/openwrt-passwall-build/snapshots/packages" > "$REPO_DIR/peditxos-passwall.list"
+        for feed in passwall_luci passwall_packages passwall2; do
+            echo "http://repository.peditxos.ir/openwrt-passwall-build/snapshots/packages/${feed}" >> "$REPO_DIR/peditxos-passwall.list"
+        done
     else
-        echo "http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}" > "$REPO_DIR/peditxos-passwall.list"
+        for feed in passwall_luci passwall_packages passwall2; do
+            echo "http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${feed}" >> "$REPO_DIR/peditxos-passwall.list"
+        done
     fi
     chmod 644 "$REPO_DIR"/*.list 2>/dev/null
     echo "   ↳ Passwall custom repos added"
