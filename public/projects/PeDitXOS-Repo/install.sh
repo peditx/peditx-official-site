@@ -71,26 +71,26 @@ if [ "$PKG_TYPE" = "apk" ]; then
 
     # Create our mirror as the main repo (REPLACES official)
     if [ "$SHORT_VER" = "snapshot" ]; then
-        echo "https://repository.peditxos.ir/openwrt/snapshots/packages" > "$REPO_FILE"
+        for feed in base luci packages routing telephony; do echo "http://repository.peditxos.ir/openwrt/snapshots/${feed}" >> "$REPO_FILE"; done
     else
-        echo "https://repository.peditxos.ir/openwrt/releases/${VERSION}/packages" > "$REPO_FILE"
+        for feed in base luci packages routing telephony; do echo "http://repository.peditxos.ir/openwrt/releases/${VERSION}/${feed}" >> "$REPO_FILE"; done
     fi
     echo "   ↳ Main repos replaced with repository.peditxos.ir"
 
     # --- Step B: Add Passwall repos as CUSTOM (separate file) ---
     mkdir -p "$REPO_DIR"
     if [ "$SHORT_VER" = "snapshot" ]; then
-        echo "https://repository.peditxos.ir/openwrt-passwall-build/snapshots/packages" > "$REPO_DIR/peditxos-passwall.list"
+        echo "http://repository.peditxos.ir/openwrt-passwall-build/snapshots/packages" > "$REPO_DIR/peditxos-passwall.list"
     else
-        echo "https://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}" > "$REPO_DIR/peditxos-passwall.list"
+        echo "http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}" > "$REPO_DIR/peditxos-passwall.list"
     fi
     chmod 644 "$REPO_DIR"/*.list 2>/dev/null
     echo "   ↳ Passwall custom repos added"
 
 else
     echo "➡️ [1/4] Configuring OPKG repositories..."
-    PEDITX_OPKG_BASE="https://repository.peditxos.ir/openwrt/releases/${VERSION}/packages/${ARCH}"
-    PASSWALL_OPKG_BASE="https://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}"
+    PEDITX_OPKG_BASE="http://repository.peditxos.ir/openwrt/releases/${VERSION}/packages/${ARCH}"
+    PASSWALL_OPKG_BASE="http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}"
 
     # REPLACE official repos (overwrite distfeeds.conf)
     cat <<EOF > /etc/opkg/distfeeds.conf
@@ -114,7 +114,7 @@ fi
 if [ "$PKG_TYPE" = "apk" ]; then
     echo "➡️ [2/4] Fetching security keys..."
     mkdir -p /etc/apk/keys
-    wget -qO /etc/apk/keys/peditxos-apk.pub https://repository.peditxos.ir/apk.pub 2>/dev/null || true
+    wget -qO /etc/apk/keys/peditxos-apk.pub http://repository.peditxos.ir/apk.pub 2>/dev/null || true
     chmod 644 /etc/apk/keys/*.pub 2>/dev/null
     echo "   ↳ Done."
 
@@ -128,7 +128,7 @@ if [ "$PKG_TYPE" = "apk" ]; then
     echo "   ↳ Database synchronized."
 else
     echo "➡️ [2/4] Adding OPKG keys..."
-    wget -qO /tmp/ipk.pub https://repository.peditxos.ir/openwrt-passwall-build/ipk.pub 2>/dev/null
+    wget -qO /tmp/ipk.pub http://repository.peditxos.ir/openwrt-passwall-build/ipk.pub 2>/dev/null
     opkg-key add /tmp/ipk.pub >/dev/null 2>&1 && rm -f /tmp/ipk.pub
     echo "   ↳ Done."
 

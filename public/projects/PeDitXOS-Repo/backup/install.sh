@@ -1,14 +1,14 @@
 #!/bin/sh
 
 # ------------------------------------------------
-#   PeDitXOS Repository Smart Installer v7.3
+#   PeDitXOS Repository Smart Installer v8.0
 #   Server: repository.peditxos.ir (Hetzner)
 #   Author: PeDitXOS Team
 # ------------------------------------------------
 
 if [ "$PEDITX_INSTALLER_RUNNING" = "1" ]; then exit 0; fi
 export PEDITX_INSTALLER_RUNNING=1
-SCRIPT_VERSION="7.3"
+SCRIPT_VERSION="8.0"
 clear
 
 # --- System Detection ---
@@ -50,32 +50,49 @@ echo "🚀 Starting repository setup (Installer v$SCRIPT_VERSION)..."
 # ====================================================================
 if [ "$PKG_TYPE" = "apk" ]; then
     echo "➡️ [1/4] Configuring APK repositories..."
-    mkdir -p /etc/apk/repositories.d
-    
-    # FIX: For APK, we only specify the directory BEFORE the architecture folder.
-    # APK will automatically append /${ARCH}/APKINDEX.tar.gz dynamically.
-    cat <<EOF > /etc/apk/repositories.d/peditxos.list
-http://repository.peditxos.ir/openwrt/releases/${VERSION}/packages
-EOF
 
-    # 2. Add Passwall Repos (Clean direct links for modern apk architecture)
-    > /etc/apk/repositories.d/customfeeds.list
-    
-    # FIX: Pointing to the directory level. APK automatically tracks its indexes natively.
-    if [ "$SHORT_VER" = "snapshot" ]; then
-        echo "http://repository.peditxos.ir/openwrt-passwall-build/snapshots/packages" >> /etc/apk/repositories.d/customfeeds.list
-    else
-        echo "http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}" >> /etc/apk/repositories.d/customfeeds.list
+    # --- Step A: REPLACE official repos with our mirror ---
+    # APK repos live in /etc/apk/repositories (single file) or /etc/apk/repositories.d/
+    REPO_FILE="/etc/apk/repositories"
+    REPO_DIR="/etc/apk/repositories.d"
+    BACKUP_DIR="/etc/apk/repositories.d.peditx-backup"
+
+    # Backup existing official repos (only once)
+    if [ ! -d "$BACKUP_DIR" ]; then
+        mkdir -p "$BACKUP_DIR"
+        [ -f "$REPO_FILE" ] && cp "$REPO_FILE" "$BACKUP_DIR/repositories.orig" 2>/dev/null
+        [ -d "$REPO_DIR" ] && cp -a "$REPO_DIR" "$BACKUP_DIR/repositories.d.orig" 2>/dev/null
+        echo "   ↳ Official repos backed up to $BACKUP_DIR"
     fi
-    
-    chmod 644 /etc/apk/repositories.d/*.list
-    echo "   ↳ Done."
+
+    # Remove official repo files
+    [ -f "$REPO_FILE" ] && rm -f "$REPO_FILE"
+    [ -d "$REPO_DIR" ] && rm -f "$REPO_DIR"/*.list 2>/dev/null
+
+    # Create our mirror as the main repo (REPLACES official)
+    if [ "$SHORT_VER" = "snapshot" ]; then
+        echo "https://repository.peditxos.ir/openwrt/snapshots/packages" > "$REPO_FILE"
+    else
+        echo "https://repository.peditxos.ir/openwrt/releases/${VERSION}/packages" > "$REPO_FILE"
+    fi
+    echo "   ↳ Main repos replaced with repository.peditxos.ir"
+
+    # --- Step B: Add Passwall repos as CUSTOM (separate file) ---
+    mkdir -p "$REPO_DIR"
+    if [ "$SHORT_VER" = "snapshot" ]; then
+        echo "https://repository.peditxos.ir/openwrt-passwall-build/snapshots/packages" > "$REPO_DIR/peditxos-passwall.list"
+    else
+        echo "https://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}" > "$REPO_DIR/peditxos-passwall.list"
+    fi
+    chmod 644 "$REPO_DIR"/*.list 2>/dev/null
+    echo "   ↳ Passwall custom repos added"
 
 else
     echo "➡️ [1/4] Configuring OPKG repositories..."
-    PEDITX_OPKG_BASE="http://repository.peditxos.ir/openwrt/releases/${VERSION}/packages/${ARCH}"
-    PASSWALL_OPKG_BASE="http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}"
-    
+    PEDITX_OPKG_BASE="https://repository.peditxos.ir/openwrt/releases/${VERSION}/packages/${ARCH}"
+    PASSWALL_OPKG_BASE="https://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}"
+
+    # REPLACE official repos (overwrite distfeeds.conf)
     cat <<EOF > /etc/opkg/distfeeds.conf
 src/gz openwrt_base ${PEDITX_OPKG_BASE}/base/
 src/gz openwrt_luci ${PEDITX_OPKG_BASE}/luci/
@@ -84,6 +101,7 @@ src/gz openwrt_routing ${PEDITX_OPKG_BASE}/routing/
 src/gz openwrt_telephony ${PEDITX_OPKG_BASE}/telephony/
 EOF
 
+    # ADD Passwall repos as custom
     cat <<EOF > /etc/opkg/customfeeds.conf
 src/gz peditxos_passwall_luci ${PASSWALL_OPKG_BASE}/passwall_luci/
 src/gz peditxos_passwall_pkgs ${PASSWALL_OPKG_BASE}/passwall_packages/
@@ -96,26 +114,24 @@ fi
 if [ "$PKG_TYPE" = "apk" ]; then
     echo "➡️ [2/4] Fetching security keys..."
     mkdir -p /etc/apk/keys
-    wget -qO /etc/apk/keys/peditxos-apk.pub http://repository.peditxos.ir/apk.pub 2>/dev/null || true
+    wget -qO /etc/apk/keys/peditxos-apk.pub https://repository.peditxos.ir/apk.pub 2>/dev/null || true
     chmod 644 /etc/apk/keys/*.pub 2>/dev/null
     echo "   ↳ Done."
-    
+
     echo "➡️ [3/4] Verifying signature structure..."
     sleep 1 && echo "   ↳ Verified."
-    
+
     echo "➡️ [4/4] Updating package database..."
-    # Deep cleaning the corrupted caches built by old path formats
-    rm -rf /var/cache/apk/* /tmp/apk-* 2>/dev/null
-    
-    # Executing clean explicit sync
+    # ONLY clear temp files, NOT the cache (cache clear breaks editconfig)
+    rm -f /tmp/apk-* 2>/dev/null
     apk update --allow-untrusted
     echo "   ↳ Database synchronized."
 else
     echo "➡️ [2/4] Adding OPKG keys..."
-    wget -qO /tmp/ipk.pub http://repository.peditxos.ir/openwrt-passwall-build/ipk.pub 2>/dev/null
+    wget -qO /tmp/ipk.pub https://repository.peditxos.ir/openwrt-passwall-build/ipk.pub 2>/dev/null
     opkg-key add /tmp/ipk.pub >/dev/null 2>&1 && rm -f /tmp/ipk.pub
     echo "   ↳ Done."
-    
+
     echo "➡️ [3/4] Updating lists..."
     timeout 60 opkg update >/dev/null 2>&1 || true
     echo "   ↳ Lists updated."
