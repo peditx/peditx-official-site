@@ -71,9 +71,9 @@ if [ "$PKG_TYPE" = "apk" ]; then
 
     # Create our mirror as the main repo (REPLACES official)
     if [ "$SHORT_VER" = "snapshot" ]; then
-        for feed in base luci packages routing telephony; do echo "http://repository.peditxos.ir/openwrt/snapshots/${feed}" >> "$REPO_FILE"; done
+        for feed in base luci packages routing telephony; do echo "http://repository.peditxos.ir/openwrt/snapshots/packages/${ARCH}/${feed}" >> "$REPO_FILE"; done
     else
-        for feed in base luci packages routing telephony; do echo "http://repository.peditxos.ir/openwrt/releases/${VERSION}/${feed}" >> "$REPO_FILE"; done
+        for feed in base luci packages routing telephony; do echo "http://repository.peditxos.ir/openwrt/releases/${VERSION}/packages/${ARCH}/${feed}" >> "$REPO_FILE"; done
     fi
     echo "   ↳ Main repos replaced with repository.peditxos.ir"
 
@@ -81,11 +81,11 @@ if [ "$PKG_TYPE" = "apk" ]; then
     mkdir -p "$REPO_DIR"
     if [ "$SHORT_VER" = "snapshot" ]; then
         for feed in passwall_luci passwall_packages passwall2; do
-            echo "http://repository.peditxos.ir/openwrt-passwall-build/snapshots/packages/${feed}" >> "$REPO_DIR/peditxos-passwall.list"
+            echo "http://repository.peditxos.ir/openwrt-passwall-build/snapshots/packages/${ARCH}/${feed}" >> "$REPO_DIR/peditxos-passwall.list"
         done
     else
         for feed in passwall_luci passwall_packages passwall2; do
-            echo "http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${feed}" >> "$REPO_DIR/peditxos-passwall.list"
+            echo "http://repository.peditxos.ir/openwrt-passwall-build/releases/packages-${SHORT_VER}/${ARCH}/${feed}" >> "$REPO_DIR/peditxos-passwall.list"
         done
     fi
     chmod 644 "$REPO_DIR"/*.list 2>/dev/null
