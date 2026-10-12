@@ -1,0 +1,23 @@
+{
+  "projects": [
+    "Aircast-OpenWrt Project.md",
+    "EzPassWallProject.md",
+    "Luci Theme CarbonPX Project.md",
+    "Luci Theme PeDitX Project.md",
+    "OpenWrt-Tor+ Project.md",
+    "OpenWrt-WARP+ Project.md",
+    "OpenWrt-WARP++ Project.md",
+    "PeDitXOS-EZOS Project.md",
+    "PeDitXOSProject.md",
+    "PeditxOS Repository Project.md",
+    "SshPlus Project.md"
+  ],
+  "videos": [
+    "Tech1 Video.md",
+    "Tech2 Video.md",
+    "Video 1.md",
+    "Video 2.md",
+    "Video 3.md",
+    "tech3.md"
+  ]
+}

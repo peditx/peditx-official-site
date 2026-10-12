@@ -1,302 +1,1180 @@
 ---
-// src/pages/index.astro
-
-// Import the main layout
+/* The home page. Everything here is rendered at build time: the projects,
+   links and videos come straight out of the content collections, so the HTML
+   that ships already contains the text a search engine reads. No client-side
+   templating anywhere in this file. */
+import { getCollection } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import PixelWordmark from '../components/PixelWordmark.astro';
+import { THEMES } from '../themes';
+import order from '../content/order.json';
+import site from '../content/site.json';
 
-// Fetch data from the new content structure
-import profileData from '../../public/profile.json'; // Fetches the single profile JSON file
-const socialLinks = await Astro.glob('../content/links/*.md');
-const projects = await Astro.glob('../content/projects/*.md');
-const videos = await Astro.glob('../content/videos/*.md');
-const blogPosts = await Astro.glob('../content/blog/*.md'); // <-- This line is now added
+/* order.json decides how the lists read — the panel rewrites it to reorder
+   them. Anything it does not name drops to the end, keeping the order the
+   collection itself returned. Entries are keyed by file name, with the id as
+   a fallback for the two files that set `slug` by hand. */
+const byOrder = (list, keys) => {
+  const at = new Map((keys || []).map((k, i) => [k, i]));
+  const rank = (entry) => {
+    const file = (entry.filePath || '').split('/').pop();
+    return at.has(file) ? at.get(file) : at.has(entry.id) ? at.get(entry.id) : Infinity;
+  };
+  return [...list].sort((a, b) => rank(a) - rank(b));
+};
 
-// Prepare the data in a format that our JavaScript can understand
-const siteData = {
-    profile: profileData.profile,
-    soundcloudPlaylistUrl: profileData.soundcloudPlaylistUrl,
-    links: socialLinks.map(link => link.frontmatter),
-    projects: projects.map(project => project.frontmatter),
-    videos: videos.map(video => video.frontmatter),
+const projects = byOrder(await getCollection('projects'), order.projects);
+const links = await getCollection('links');
+const videos = byOrder(await getCollection('videos'), order.videos);
+
+/* Only fields that must reach the client. */
+const soundcloudPlaylistUrl = 'https://soundcloud.com/peditx/sets/pedram-peditx-old-singles';
+
+const sections = [
+  { id: 'projects', num: '01', kicker: 'Creations', title: 'Projects' },
+  { id: 'videos', num: '02', kicker: 'On YouTube', title: 'Videos' },
+  { id: 'music', num: '03', kicker: 'Since 2005', title: 'Music' },
+  { id: 'connect', num: '04', kicker: 'Find me', title: 'Connect' },
+  { id: 'about', num: '05', kicker: 'Background', title: 'About' },
+] as const;
+
+/* Structured data for search engines. Rendered inline as JSON-LD.
+   WebSite + Person is what feeds Google's knowledge panel: the sameAs list
+   ties every profile to this domain. VideoObject is what earns video rich
+   results. Everything is derived from the collections so the panel never has
+   to touch this file. */
+const siteUrl = 'https://codes.peditx.ir';
+/* site.json is edited from the panel. Three different pictures on purpose:
+   the knowledge panel wants a photo of the person, the social preview wants
+   the brand, and WebSite.logo wants the mark itself. */
+const profileImage = new URL(site.profileImage, siteUrl).href;
+const websiteImage = new URL(site.websiteImage, siteUrl).href;
+const logoImage = new URL(site.logo, siteUrl).href;
+
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'PeDitX',
+  url: siteUrl,
+  description: site.description,
+  image: websiteImage,
+  logo: logoImage,
+  inLanguage: ['en', 'fa'],
+  author: { '@type': 'Person', name: 'PeDitX', url: siteUrl },
+};
+
+const personSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: 'PeDitX',
+  alternateName: 'Pedram Alemahmoud',
+  givenName: 'Pedram',
+  familyName: 'Alemahmoud',
+  jobTitle: ['Developer', 'Musician', 'Actor', 'Content Creator'],
+  url: 'https://codes.peditx.ir',
+  description: site.description,
+  image: profileImage,
+  sameAs: links.map((l) => l.data.url),
+  knowsAbout: ['OpenWrt', 'Linux', 'Network engineering', 'Music production', 'Film directing'],
+  birthDate: '1988-06-06',
+  birthPlace: { '@type': 'Place', name: 'Ahvaz, Iran' },
+  alumniOf: [
+    { '@type': 'CollegeOrUniversity', name: 'University of Tehran' },
+    { '@type': 'CollegeOrUniversity', name: 'Central Tehran Azad University' },
+  ],
+};
+
+const videoSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'PeDitX videos',
+  itemListElement: videos.map((video, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    item: {
+      '@type': 'VideoObject',
+      name: video.data.title,
+      description: video.data.title,
+      thumbnailUrl: [
+        video.data.thumbnailUrl ?? `https://i.ytimg.com/vi/${video.data.videoId}/hqdefault.jpg`,
+      ],
+      contentUrl: `https://www.youtube.com/watch?v=${video.data.videoId}`,
+      embedUrl: `https://www.youtube-nocookie.com/embed/${video.data.videoId}`,
+      /* No uploadDate: the videos collection has no date field, and a wrong
+         one is worse than none. Add `pubDate` to the schema to enable it. */
+      author: { '@type': 'Person', name: 'PeDitX' },
+    },
+  })),
+};
+
+const projectSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'PeDitX projects',
+  itemListElement: projects.map((project, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    item: {
+      '@type': 'SoftwareSourceCode',
+      name: project.data.name,
+      description: project.data.description,
+      url: project.data.url,
+      codeRepository: project.data.url,
+      author: { '@type': 'Person', name: 'PeDitX' },
+    },
+  })),
 };
 ---
 
-<Layout title="PeDitX - Official Website">
+<Layout
+  title="PeDitX — Developer, Musician, Actor"
+  description={site.description}
+>
+  <script type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />
+  <script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
+  <script type="application/ld+json" set:html={JSON.stringify(videoSchema)} />
+  <script type="application/ld+json" set:html={JSON.stringify(projectSchema)} />
 
-    <!-- This is the exact same HTML structure as your original site -->
-    <script type="application/ld+json" id="structured-data"></script>
+  <Header />
 
-    <div class="container mx-auto p-4 max-w-5xl">
-        <header id="hero-header" class="relative w-full min-h-[400px] sm:min-h-[500px] mb-8 overflow-hidden flex flex-col items-center justify-center">
-            <div class="relative z-10 flex flex-col items-center justify-center h-full text-center text-white p-4" data-parallax-speed="1.2">
-                <div class="logo-container mb-4">
-                    <img src="/PeDitX.png" alt="PeDitX Logo" class="logo-img">
-                </div>
-                <p id="profile-tagline" class="text-lg opacity-80 mt-4 font-heading tracking-wider"></p>
-                <p id="profile-bio" class="max-w-2xl mt-4 opacity-70 font-light hidden sm:block"></p>
-            </div>
-        </header>
+  <main id="main">
+    <!-- ── Hero ─────────────────────────────────────────────────────── -->
+    <section id="top" class="hero" aria-label="Introduction">
+      <canvas class="hero__glow" data-hero-glow aria-hidden="true"></canvas>
+      <div class="hero__inner">
+        <p class="hero__kicker hero-rise" style="--rise-index: 0">
+          <span class="hero__cursor caret-blink" aria-hidden="true"></span>
+          <span id="tagline">Developer · Musician · Actor · Creator</span>
+        </p>
 
-        <nav class="flex flex-wrap justify-center gap-2 sm:gap-4 mb-12" data-parallax-speed="0.8">
-            <button id="nav-home" class="nav-btn active">Home</button>
-            <button id="nav-music" class="nav-btn">Music</button>
-            <button id="nav-videos" class="nav-btn">Video</button>
-        </nav>
-        
-        <main data-parallax-speed="0.8">
-            <div id="view-home">
-                <section class="mb-12">
-                    <h2 class="text-3xl font-bold text-center mb-6 main-gradient-text">Featured Videos</h2>
-                    <div class="relative">
-                        <div id="video-slider" class="video-slider flex gap-4 overflow-x-auto p-2"></div>
-                        
-                        <button id="left-arrow-btn" class="sm:hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors duration-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-8 h-8 text-white">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                            </svg>
-                        </button>
-                        <button id="right-arrow-btn" class="sm:hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors duration-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-8 h-8 text-white">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                            </svg>
-                        </button>
-                    </div>
-                </section>
-                
-                <section class="mb-12">
-                    <h2 class="text-3xl font-bold text-center mb-6 main-gradient-text">Creations</h2>
-                    <div id="projects-container" class="space-y-4"></div>
-                </section>
+        <h1 class="hero__wordmark hero-rise" style="--rise-index: 1">
+          <span class="sr-only">PeDitX</span>
+          <PixelWordmark />
+        </h1>
 
-                <!-- This is the new Blog section -->
-                <section class="mb-12">
-                    <h2 class="text-3xl font-bold text-center mb-6 main-gradient-text">Latest Posts</h2>
-                    <div id="blog-container" class="space-y-4">
-                        {blogPosts.sort((a, b) => new Date(b.frontmatter.pubDate).valueOf() - new Date(a.frontmatter.pubDate).valueOf()).map(post => (
-                            <a href={post.url} class="project-card glass-card p-4 block transition-colors hover:border-gray-400">
-                                <h3 class="font-bold text-lg">{post.frontmatter.title}</h3>
-                                <p class="opacity-70 text-sm font-light mt-1">{post.frontmatter.description}</p>
-                                <p class="opacity-50 text-xs mt-2">{new Date(post.frontmatter.pubDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                            </a>
-                        ))}
-                    </div>
-                </section>
-                <!-- End of new Blog section -->
+        <p class="hero__lead hero-rise" style="--rise-index: 2">
+          I build <strong>PeDitXOS</strong> and a set of <strong>OpenWrt</strong> packages, I have
+          released around 169 single tracks, and I act in theatre and short film.
+        </p>
 
-                <section>
-                    <h2 class="text-3xl font-bold text-center mb-6 main-gradient-text">Connect</h2>
-                    <div id="links-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
-                </section>
-            </div>
+        <div class="hero__actions hero-rise" style="--rise-index: 3">
+          <a href="#projects" class="btn btn--primary">See the projects</a>
+          <a
+            href="https://github.com/peditx"
+            class="btn"
+            rel="noopener"
+            target="_blank"
+          >
+            GitHub
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="btn__arrow">
+              <path d="M14 5.75L20.25 12L14 18.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"></path>
+              <path d="M19.5 12H3.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"></path>
+            </svg>
+          </a>
+        </div>
 
-            <div id="view-music" class="hidden-view">
-                <div class="glass-card p-4">
-                    <h2 class="text-3xl font-bold text-center mb-6 main-gradient-text">SoundCloud</h2>
-                    <iframe id="soundcloud-player" width="100%" height="450" scrolling="no" frameborder="no" allow="autoplay" src=""></iframe>
-                </div>
-            </div>
+        <dl class="hero__stats hero-rise" style="--rise-index: 4">
+          <div class="hero__stat">
+            <dt>Themes</dt>
+            <dd>{THEMES.length}</dd>
+          </div>
+          <div class="hero__stat">
+            <dt>Projects</dt>
+            <!-- ponytail: hand-written totals, not content counts — the repo
+                 only carries the pick of them. Swap back to {projects.length}
+                 if the archive is ever fully migrated here. -->
+            <dd>160+</dd>
+          </div>
+          <div class="hero__stat">
+            <dt>Videos</dt>
+            <dd>200+</dd>
+          </div>
+          <div class="hero__stat">
+            <dt>Active since</dt>
+            <dd>2005</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
 
-            <div id="view-videos" class="hidden-view">
-                <div class="glass-card p-4 sm:p-6">
-                    <div class="w-full aspect-video mb-4 rounded-md overflow-hidden shadow-lg">
-                        <iframe id="video-player-iframe" width="100%" height="100%" src="" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                    </div>
-                    <h3 id="video-title" class="text-2xl font-bold text-center mb-4">Select a Video</h3>
-                    <div id="video-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-80 overflow-y-auto"></div>
-                </div>
-            </div>
-        </main>
-        
-        <footer class="text-center mt-12 py-4 border-t border-gray-800" data-parallax-speed="0.6">
-            <p class="opacity-50 text-sm font-light">© <span id="copyright-year"></span> PeDitX - All Rights Reserved.</p>
-        </footer>
+    <!-- ── Ticker ──────────────────────────────────────────────────── -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee__track">
+        {
+          Array.from({ length: 2 }).map(() => (
+            <span class="marquee__set">
+              <span>PeDitXOS</span>
+              <span>OpenWrt packages</span>
+              <span>LuCI themes</span>
+              <span>Rap &amp; metal</span>
+              <span>Theatre</span>
+              <span>Short film</span>
+              <span>Network tooling</span>
+              <span>Since 2005</span>
+            </span>
+          ))
+        }
+      </div>
     </div>
 
-    <div id="seo-hidden" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); -webkit-clip-path: inset(50%); clip-path: inset(50%); z-index:-1000;"></div>
+    <!-- ── Projects ─────────────────────────────────────────────────── -->
+    <section id="projects" class="band" data-reveal>
+      <div class="band__inner">
+        <header class="band__head">
+          <span class="band__num" aria-hidden="true">01</span>
+          <h2 class="band__title">Projects</h2>
+          <p class="band__lead">
+            The operating system, packages and themes I built and shipped.
+          </p>
+        </header>
 
-    <script is:inline id="service-worker-script-source">
-        const CACHE_NAME = 'peditx-cache-v1';
-        const urlsToCache = [ '/', ];
-        self.addEventListener('install', event => { event.waitUntil( caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache)) ); });
-        self.addEventListener('fetch', event => { event.respondWith( caches.match(event.request).then(response => response || fetch(event.request)) ); });
-    </script>
+        <ul class="cards" data-reveal-stagger>
+          {
+            projects.map((project, i) => (
+              <li class="cards__item" style={`--i:${i}`}>
+                <a
+                  href={project.data.url}
+                  class="card"
+                 
+                  rel="noopener"
+                  target="_blank"
+                >
+                  <span class="card__body">
+                    <span class="card__title">{project.data.name}</span>
+                    <span class="card__desc">{project.data.description}</span>
+                  </span>
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="card__arrow">
+                    <path d="M14 5.75L20.25 12L14 18.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"></path>
+                    <path d="M19.5 12H3.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"></path>
+                  </svg>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </section>
 
-    <script is:inline define:vars={{ initialData: siteData }}>
-        document.addEventListener('DOMContentLoaded', () => {
-            // PWA Service Worker Setup
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    const swSource = document.getElementById('service-worker-script-source').textContent;
-                    const swBlob = new Blob([swSource], { type: 'application/javascript' });
-                    const swUrl = URL.createObjectURL(swBlob);
-                    navigator.serviceWorker.register(swUrl)
-                        .then(registration => console.log('Service Worker registered with scope:', registration.scope))
-                        .catch(error => console.log('Service Worker registration failed:', error));
-                });
-            }
+    <!-- ── Videos ───────────────────────────────────────────────────── -->
+    <section id="videos" class="band band--deep" data-reveal>
+      <div class="band__inner">
+        <header class="band__head">
+          <span class="band__num" aria-hidden="true">02</span>
+          <h2 class="band__title">Videos</h2>
+          <p class="band__lead">Technology and networking, on YouTube.</p>
+        </header>
 
-            // Get data directly from Astro instead of fetching
-            const data = initialData; 
+        <ul class="reel" data-reveal-stagger>
+          {
+            videos.map((video, i) => (
+              <li class="reel__item" style={`--i:${i}`}>
+                <a
+                  href={`https://www.youtube.com/watch?v=${video.data.videoId}`}
+                  class="reel__card"
+                 
+                  rel="noopener"
+                  target="_blank"
+                >
+                  <span class="reel__thumb">
+                    <img
+                      src={
+                        video.data.thumbnailUrl ??
+                        `https://i.ytimg.com/vi/${video.data.videoId}/hqdefault.jpg`
+                      }
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      width="480"
+                      height="360"
+                    />
+                    <span class="reel__play" aria-hidden="true">
+                      <svg class="reel__play-svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5.5v13l11-6.5-11-6.5Z"></path>
+                      </svg>
+                    </span>
+                  </span>
+                  <span class="reel__title">{video.data.title}</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </section>
 
-            // --- The rest of your original JavaScript code remains unchanged ---
-            const heroTagline = document.getElementById('profile-tagline');
-            const heroBio = document.getElementById('profile-bio');
-            const linksGrid = document.getElementById('links-grid');
-            const projectsContainer = document.getElementById('projects-container');
-            const structuredDataEl = document.getElementById('structured-data');
-            const navButtons = { home: document.getElementById('nav-home'), music: document.getElementById('nav-music'), videos: document.getElementById('nav-videos') };
-            const views = { home: document.getElementById('view-home'), music: document.getElementById('view-music'), videos: document.getElementById('view-videos') };
-            const videoSlider = document.getElementById('video-slider');
-            const soundcloudPlayer = document.getElementById('soundcloud-player');
-            const videoPlayerIframe = document.getElementById('video-player-iframe');
-            const videoTitleEl = document.getElementById('video-title');
-            const videoListEl = document.getElementById('video-list');
+    <!-- ── Music ────────────────────────────────────────────────────── -->
+    <section id="music" class="band" data-reveal>
+      <div class="band__inner">
+        <header class="band__head">
+          <span class="band__num" aria-hidden="true">03</span>
+          <h2 class="band__title">Music</h2>
+          <p class="band__lead">
+            Around 169 single tracks between 2005 and 2020, in rap and metal.
+          </p>
+        </header>
 
-            function renderAll() {
-                if (!data) return;
-                renderHero(data.profile);
-                renderLinks(data.links);
-                renderProjects(data.projects);
-                renderStructuredData(data);
-                loadSoundCloudPlayer(data.soundcloudPlaylistUrl);
-                renderVideoSlider(data.videos);
-                renderVideoList(data.videos);
-                if(data.videos && data.videos.length > 0) loadVideo(data.videos[0]);
-            }
+        <div class="visualiser">
+          <div class="visualiser__rings" aria-hidden="true">
+            <span class="music-ring"></span>
+            <span class="music-ring"></span>
+            <span class="music-ring"></span>
+          </div>
 
-            async function fetchAndSetBingImage() {
-                try {
-                    const BING_API_URL = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=7&mkt=en-US');
-                    const response = await fetch(BING_API_URL);
-                    const apiData = await response.json();
-                    const bingData = JSON.parse(apiData.contents);
-                    const images = bingData.images.map(img => `https://www.bing.com${img.url}`);
-                    const randomIndex = Math.floor(Math.random() * images.length);
-                    document.body.style.backgroundImage = `url(${images[randomIndex]})`;
-                } catch (error) {
-                    console.error('Failed to fetch Bing image:', error);
-                }
-            }
+          <div class="player">
+            <iframe
+              title="PeDitX on SoundCloud"
+              width="100%"
+              height="300"
+              loading="lazy"
+              allow="autoplay"
+              src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(soundcloudPlaylistUrl)}&color=%239ece6a&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false`}
+            ></iframe>
+          </div>
+        </div>
+      </div>
+    </section>
 
-            function renderHero(profile) {
-                if (!profile) return;
-                heroTagline.textContent = profile.tagline;
-                heroBio.textContent = profile.bio;
-                document.getElementById('copyright-year').textContent = new Date().getFullYear();
-            }
+    <!-- ── Connect ──────────────────────────────────────────────────── -->
+    <section id="connect" class="band band--deep" data-reveal>
+      <div class="band__inner">
+        <header class="band__head">
+          <span class="band__num" aria-hidden="true">04</span>
+          <h2 class="band__title">Connect</h2>
+          <p class="band__lead">Find me on these platforms.</p>
+        </header>
 
-            function renderLinks(links) {
-                if (!links) return;
-                linksGrid.innerHTML = links.map(link => `
-                    <a href="${link.url}" target="_blank" rel="noopener noreferrer" class="link-card glass-card p-4 flex flex-col items-center justify-center text-center group">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 mb-2 opacity-70 group-hover:opacity-100 transition-opacity">${link.icon}</svg>
-                        <span class="font-semibold font-heading">${link.name}</span>
-                    </a>`).join('');
-            }
+        <ul class="links" data-reveal-stagger>
+          {
+            links.map((link, i) => (
+              <li class="links__item" style={`--i:${i}`}>
+                <a
+                  href={link.data.url}
+                  class="links__card"
+                 
+                  rel="noopener me"
+                  target="_blank"
+                >
+                  <svg
+                    class="links__icon-svg"
+                    viewBox="0 0 24 24"
+                    fill={link.data.solid ? 'currentColor' : 'none'}
+                    stroke={link.data.solid ? 'none' : 'currentColor'}
+                    stroke-width={link.data.solid ? 0 : 2}
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    set:html={link.data.icon}
+                    aria-hidden="true"
+                  />
+                  <span class="links__name">{link.data.name}</span>
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="links__arrow">
+                    <path d="M14 5.75L20.25 12L14 18.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"></path>
+                    <path d="M19.5 12H3.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"></path>
+                  </svg>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </section>
 
-            function renderProjects(projects) {
-                if (!projects) return;
-                projectsContainer.innerHTML = projects.map(project => `
-                    <a href="${project.url}" target="_blank" rel="noopener noreferrer" class="project-card glass-card p-4 flex items-center gap-4">
-                        <img src="${project.iconUrl}" class="w-12 h-12 rounded-md" alt="${project.name}">
-                        <div>
-                            <h3 class="font-bold text-lg">${project.name}</h3>
-                            <p class="opacity-70 text-sm font-light">${project.description}</p>
-                        </div>
-                    </a>`).join('');
-            }
+    <!-- ── About ────────────────────────────────────────────────────── -->
+    <section id="about" class="band" data-reveal>
+      <div class="band__inner band__inner--narrow">
+        <header class="band__head">
+          <span class="band__num" aria-hidden="true">05</span>
+          <h2 class="band__title">About</h2>
+        </header>
 
-            function renderStructuredData(data) {
-                const schema = {
-                    "@context": "https://schema.org", "@type": "Person", "name": data.profile.name, "url": "https://peditx.ir",
-                    "image": data.profile.imageUrl, "sameAs": [...data.links.map(link => link.url), "https://www.imdb.com/name/nm12440099"],
-                    "jobTitle": ["Musician","Software Developer","Actor","YouTuber","Streamer","Designer"],
-                    "description": data.profile.bio
-                };
-                structuredDataEl.textContent = JSON.stringify(schema, null, 2);
-            }
+        <div class="about">
+          <p>
+            <strong>Pedram Alemahmoud</strong>, known as <strong>PeDitX</strong>, was born on 6 June
+            1988 in Ahvaz, Khuzestan, and lives in Tehran.
+          </p>
+          <p>
+            He holds a BA in acting from the University of Tehran and an MA in directing from
+            Central Tehran Azad University. His media work began in 2005 as a camera operator and
+            lighting engineer for IRIB. He presented television in 2008, on <em>Darshahr</em> and
+            <em>Fanavaraneh</em>, and narrated the radio programme <em>Arghanoon</em> in 2020.
+          </p>
+          <p>
+            He has been making music since 2005, and has acted in stage plays and short films since
+            2013.
+          </p>
 
-            function switchView(targetView) {
-                Object.values(views).forEach(view => view.classList.add('hidden-view'));
-                Object.values(navButtons).forEach(btn => btn.classList.remove('active'));
-                views[targetView].classList.remove('hidden-view');
-                navButtons[targetView].classList.add('active');
-            }
+          <a
+            href="https://www.imdb.com/name/nm14063328/"
+            class="btn btn--quiet"
+            rel="noopener"
+            target="_blank"
+          >
+            View on IMDb
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="btn__arrow">
+              <path d="M14 5.75L20.25 12L14 18.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"></path>
+              <path d="M19.5 12H3.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"></path>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
 
-            navButtons.home.addEventListener('click', () => switchView('home'));
-            navButtons.music.addEventListener('click', () => switchView('music'));
-            navButtons.videos.addEventListener('click', () => switchView('videos'));
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <span class="site-footer__mark" aria-hidden="true">PX</span>
+      <p class="site-footer__text">
+        © {new Date().getFullYear()} PeDitX · Pedram Alemahmoud. All rights reserved.
+      </p>
+      <p class="site-footer__meta">
+        Built with Astro · {THEMES.length} themes · No trackers
+      </p>
+    </div>
+  </footer>
 
-            function loadSoundCloudPlayer(playlistUrl) {
-                if (playlistUrl) soundcloudPlayer.src = playlistUrl;
-            }
 
-            function renderVideoList(videos) {
-                if (!videos) return;
-                videoListEl.innerHTML = videos.map((video, index) => `
-                    <div class="cursor-pointer group" data-index="${index}">
-                        <div class="aspect-video overflow-hidden rounded-md">
-                            <img src="${video.thumbnailUrl}" alt="${video.title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
-                        </div>
-                        <p class="text-sm mt-2 text-center opacity-80 group-hover:opacity-100 font-heading truncate">${video.title}</p>
-                    </div>`).join('');
-                videoListEl.querySelectorAll('.cursor-pointer').forEach(item => {
-                   item.addEventListener('click', () => {
-                       const index = parseInt(item.dataset.index);
-                       loadVideo(videos[index]);
-                   });
-                });
-            }
+  <script>
+    /* Backlight behind the wordmark.
+     Horizontal: follows the pointer and is wide enough to cover the mark end
+     to end, so the strip never breaks as the cursor crosses it.
+     Vertical: anchored to the mark and only a few millimetres taller than it,
+     so the light fades just past the top and bottom of the lettering. */
+  const glow = document.querySelector<HTMLCanvasElement>('[data-hero-glow]');
+  const heroEl = document.querySelector<HTMLElement>('.hero');
+  const markEl = document.querySelector<HTMLElement>('[data-pixel-wordmark]');
+  if (glow && heroEl && markEl) {
+    const gctx = glow.getContext('2d');
+    const BLOCK = 10; /* css px — the grain of the light */
+    let gw = 0;
+    let gh = 0;
+    let gdpr = 1;
+    let pointerX = NaN;
+    let pointerY = NaN;
+    let brand = [125, 216, 125];
 
-            function renderVideoSlider(videos) {
-                if (!videos) return;
-                videoSlider.innerHTML = videos.map((video, index) => `
-                    <a href="#" class="video-card cursor-pointer block rounded-lg overflow-hidden shadow-lg" data-index="${index}">
-                        <div class="relative w-full h-32">
-                            <img src="${video.thumbnailUrl}" alt="${video.title}" class="w-full h-full object-cover">
-                            <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 opacity-0 hover:opacity-100 transition-opacity">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
-                            </div>
-                        </div>
-                        <div class="p-4"><h3 class="font-bold text-sm text-center truncate">${video.title}</h3></div>
-                    </a>`).join('');
-                videoSlider.querySelectorAll('.video-card').forEach(item => {
-                   item.addEventListener('click', (e) => {
-                       e.preventDefault();
-                       const index = parseInt(item.dataset.index);
-                       loadVideo(videos[index]);
-                       switchView('videos');
-                   });
-                });
-            }
+    const readBrand = () => {
+      const v = getComputedStyle(document.documentElement).getPropertyValue('--t-brand').trim();
+      const s = v.replace('#', '');
+      if (s.length >= 6) {
+        const n = parseInt(s.slice(0, 6), 16);
+        brand = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      }
+    };
 
-            function loadVideo(video) {
-                if (!video) return;
-                videoPlayerIframe.src = `https://www.youtube.com/embed/${video.videoId}`;
-                videoTitleEl.textContent = video.title;
-            }
+    /* A disc that tracks the pointer. Radial by construction — one radius for
+       both axes — so it stays a circle wherever the cursor is, and the fall-off
+       is gentle enough that no contour is visible against the lettering. */
+    const drawGlow = () => {
+      if (!gctx) return;
+      gctx.setTransform(1, 0, 0, 1, 0, 0);
+      gctx.clearRect(0, 0, gw, gh);
+      const heroR = heroEl.getBoundingClientRect();
+      const markR = markEl.getBoundingClientRect();
+      if (heroR.width < 2 || markR.height < 2) return;
+      if (Number.isNaN(pointerX) || Number.isNaN(pointerY)) return;
 
-            const parallaxElements = document.querySelectorAll('[data-parallax-speed]');
-            document.addEventListener('mousemove', (e) => {
-                const centerX = window.innerWidth / 2, centerY = window.innerHeight / 2;
-                parallaxElements.forEach(el => {
-                    const speed = parseFloat(el.dataset.parallaxSpeed);
-                    const x = (e.clientX - centerX) * speed / 100, y = (e.clientY - centerY) * speed / 100;
-                    el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-                });
-            });
+      const b = BLOCK * gdpr;
+      const cols = Math.ceil(gw / b);
+      const rows = Math.ceil(gh / b);
+      const cx = pointerX * gdpr;
+      const cy = pointerY * gdpr;
+      const R = markR.height * 0.22 * gdpr;
+      const gap = b * 0.12;
 
-            const leftArrowBtn = document.getElementById('left-arrow-btn');
-            const rightArrowBtn = document.getElementById('right-arrow-btn');
-            const videoSliderElement = document.getElementById('video-slider');
+      /* The background keeps a quiet circle at the centre of the page, and the
+         light is only allowed inside it — everywhere else the page belongs to
+         the dust. Published by PixelDust so the two never drift apart. */
+      const ring = parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--bg-circle-r')
+      );
+      const ringR = Number.isFinite(ring) && ring > 0 ? ring * gdpr : Infinity;
+      const ringX = (heroR.left + window.innerWidth / 2) * gdpr;
+      const ringY = (heroR.top + window.innerHeight / 2) * gdpr;
 
-            leftArrowBtn.addEventListener('click', () => { videoSliderElement.scrollBy({ left: -300, behavior: 'smooth' }); });
-            rightArrowBtn.addEventListener('click', () => { videoSliderElement.scrollBy({ left: 300, behavior: 'smooth' }); });
+      for (let gy = 0; gy < rows; gy++) {
+        for (let gx = 0; gx < cols; gx++) {
+          const bx = gx * b + b / 2;
+          const by = gy * b + b / 2;
+          const rx = bx - cx;
+          const ry2 = by - cy;
+          if (rx * rx + ry2 * ry2 >= R * R) continue;
+          const qx = bx - ringX;
+          const qy = by - ringY;
+          if (qx * qx + qy * qy >= ringR * ringR) continue;
+          const d = Math.hypot(rx, ry2) / R;
+          const a = 0.5 * (1 - Math.pow(d, 1.4));
+          if (a <= 0.003) continue;
+          gctx.fillStyle = `rgba(${brand[0]}, ${brand[1]}, ${brand[2]}, ${a})`;
+          gctx.fillRect(gx * b, gy * b, b - gap, b - gap);
+        }
+      }
+    };
 
-            // Initial calls
-            renderAll();
-            fetchAndSetBingImage();
-        });
-    </script>
+    const sizeGlow = () => {
+      const r = heroEl.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return;
+      gdpr = Math.min(window.devicePixelRatio || 1, 2);
+      gw = Math.round(r.width * gdpr);
+      gh = Math.round(r.height * gdpr);
+      glow.width = gw;
+      glow.height = gh;
+      drawGlow();
+    };
+
+    let queued = false;
+    const queue = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        drawGlow();
+      });
+    };
+
+    heroEl.addEventListener('pointermove', (e) => {
+      const r = heroEl.getBoundingClientRect();
+      pointerX = e.clientX - r.left;
+      pointerY = e.clientY - r.top;
+      queue();
+    });
+    heroEl.addEventListener('pointerleave', () => {
+      pointerX = NaN;
+      pointerY = NaN;
+      queue();
+    });
+    new ResizeObserver(sizeGlow).observe(heroEl);
+    new MutationObserver(() => {
+      readBrand();
+      queue();
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    readBrand();
+    sizeGlow();
+  }
+
+  /* Scroll reveal. The hidden state lives in CSS, but it is only reached
+       because this script runs — without JavaScript every section stays
+       visible. Elements already on screen are revealed immediately so the
+       fold never flashes. Each element is observed once. */
+    const targets = document.querySelectorAll('[data-reveal], [data-reveal-stagger]');
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reduced || !('IntersectionObserver' in window)) {
+      targets.forEach((el) => el.classList.add('is-visible'));
+    } else {
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            entry.target.classList.add('is-visible');
+            io.unobserve(entry.target);
+          }
+        },
+        { rootMargin: '0px 0px -8% 0px', threshold: 0.08 }
+      );
+      targets.forEach((el) => io.observe(el));
+    }
+
+    /* Pause the ticker when the tab is hidden so it does not burn frames in
+       the background. */
+    document.addEventListener('visibilitychange', () => {
+      document.documentElement.classList.toggle('tab-hidden', document.hidden);
+    });
+  </script>
 </Layout>
 
+<style>
+  /* ── Hero ───────────────────────────────────────────────────────── */
+  .hero {
+    position: relative;
+    border-bottom: 1px solid var(--t-border-subtle);
+    padding-block: clamp(4rem, 12vw, 8rem) clamp(3rem, 8vw, 6rem);
+  }
+
+  .hero__inner {
+    max-width: 72rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+    text-align: center;
+  }
+
+  .hero__glow {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    image-rendering: pixelated;
+  }
+
+  .hero__inner {
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero__kicker {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--t-text-muted);
+  }
+
+  /* The blink itself comes from the global .caret-blink class, so reduced
+     motion and the theme picker both stay in sync from one definition. */
+  .hero__cursor {
+    width: 0.5rem;
+    height: 1rem;
+    background: var(--t-brand);
+  }
+
+  /* The headline is painted as a pixel grid by PixelWordmark, so the text
+     itself is only a screen-reader fallback. No type styles needed here
+     beyond the box: the canvas sets the size through its aspect ratio. */
+  .hero__wordmark {
+    max-width: 56rem;
+    /* Centred: without this the fixed max-width left-aligns it inside the
+       wider content column, which put the wordmark off-centre. */
+    margin-inline: auto;
+    margin-block: 0;
+    font-family: inherit;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .hero__lead {
+    max-width: 40rem;
+    margin: 1.75rem auto 0;
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    line-height: 1.7;
+    color: var(--t-text-secondary);
+  }
+
+  .hero__lead strong {
+    color: var(--t-text);
+    font-weight: 600;
+  }
+
+  .hero__actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 2.25rem;
+  }
+
+  .hero__stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    margin: 3.5rem 0 0;
+    padding: 1px;
+    background: var(--t-border-subtle);
+    border: 1px solid var(--t-border-subtle);
+  }
+
+  @media (min-width: 48rem) {
+    .hero__stats {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .hero__stat {
+    padding: 1rem 1.25rem;
+    background: var(--t-bg);
+    text-align: center;
+  }
+
+  .hero__stat dt {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--t-text-muted);
+  }
+
+  .hero__stat dd {
+    margin: 0.375rem 0 0;
+    font-family: var(--font-mono);
+    font-size: 1.375rem;
+    font-weight: 700;
+    color: var(--t-brand);
+  }
+
+  /* ── Buttons ────────────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.125rem;
+    border: 1px solid var(--t-border-strong);
+    background: transparent;
+    color: var(--t-text);
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      border-color 120ms ease-out,
+      background-color 120ms ease-out,
+      color 120ms ease-out;
+  }
+
+  .btn:hover {
+    border-color: var(--t-brand);
+    background: var(--t-brand-soft);
+    color: var(--t-brand);
+  }
+
+  .btn:focus-visible {
+    outline: 2px solid var(--t-brand);
+    outline-offset: 2px;
+  }
+
+  .btn--primary {
+    border-color: var(--t-brand);
+    background: var(--t-brand);
+    color: var(--t-brand-ink);
+    font-weight: 600;
+  }
+
+  .btn--primary:hover {
+    background: var(--t-text);
+    border-color: var(--t-text);
+    color: var(--t-bg);
+  }
+
+  .btn--quiet {
+    margin-top: 1.5rem;
+  }
+
+  .btn__arrow {
+    width: 1rem;
+    height: 1rem;
+    transition: transform 120ms ease-out;
+  }
+
+  .btn:hover .btn__arrow {
+    transform: translateX(0.125rem);
+  }
+
+  /* ── Bands ──────────────────────────────────────────────────────── */
+  .band {
+    border-bottom: 1px solid var(--t-border-subtle);
+    padding-block: clamp(3rem, 8vw, 5.5rem);
+    /* The visualiser rings sit absolutely and reach past the player box. With
+       overflow visible they dragged the section to 442px inside a 390px
+       viewport, so the page scrolled sideways. Clipping here keeps the bleed
+       decorative instead of layout-affecting. */
+    overflow: hidden;
+    max-width: 100%;
+  }
+
+  .band--deep {
+    background: var(--t-bg-deep);
+  }
+
+  .band__inner {
+    max-width: 72rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  .band__inner--narrow {
+    max-width: 48rem;
+  }
+
+  .band__head {
+    margin-bottom: 2.25rem;
+  }
+
+  .band__num {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--t-brand);
+    letter-spacing: 0.1em;
+  }
+
+  .band__title {
+    margin: 0.375rem 0 0;
+    font-family: var(--font-mono);
+    font-size: clamp(1.75rem, 5vw, 2.5rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--t-text);
+  }
+
+  .band__lead {
+    max-width: 36rem;
+    margin: 0.75rem 0 0;
+    color: var(--t-text-secondary);
+    line-height: 1.7;
+  }
+
+  /* ── Project cards ──────────────────────────────────────────────── */
+  .cards {
+    display: grid;
+    gap: 1px;
+    margin: 0;
+    padding: 1px;
+    list-style: none;
+    background: var(--t-border-subtle);
+    border: 1px solid var(--t-border-subtle);
+  }
+
+  @media (min-width: 40rem) {
+    .cards {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .cards {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .cards__item {
+    background: var(--t-bg);
+  }
+
+  .card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    height: 100%;
+    padding: 1.25rem;
+    text-decoration: none;
+    transition: background-color 120ms ease-out;
+  }
+
+  .card:hover {
+    background: var(--t-surface);
+  }
+
+  .card:focus-visible {
+    outline: 2px solid var(--t-brand);
+    outline-offset: -2px;
+  }
+
+  .card__body {
+    display: block;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .card__title {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--t-text);
+  }
+
+  .card__desc {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--t-text-muted);
+  }
+
+  .card__arrow {
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
+    color: var(--t-text-muted);
+    transition:
+      transform 120ms ease-out,
+      color 120ms ease-out;
+  }
+
+  .card:hover .card__arrow {
+    color: var(--t-brand);
+    transform: translateX(0.125rem);
+  }
+
+  /* ── Video reel ─────────────────────────────────────────────────── */
+  .reel {
+    display: grid;
+    gap: 1.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 40rem) {
+    .reel {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .reel {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .reel__card {
+    display: block;
+    text-decoration: none;
+  }
+
+  .reel__card:focus-visible {
+    outline: 2px solid var(--t-brand);
+    outline-offset: 2px;
+  }
+
+  .reel__thumb {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    border: 1px solid var(--t-border-subtle);
+    background: var(--t-surface);
+    aspect-ratio: 16 / 9;
+  }
+
+  .reel__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: opacity 120ms ease-out;
+  }
+
+  .reel__card:hover img {
+    opacity: 0.75;
+  }
+
+  .reel__play {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--t-text);
+    opacity: 0.85;
+  }
+
+  /* Direct class on the element rather than a descendant selector:
+     Astro's scoping attribute can collide with the tag once minified. */
+  .reel__play-svg {
+    width: 2.5rem;
+    height: 2.5rem;
+    filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.5));
+  }
+
+  .reel__title {
+    display: block;
+    margin-top: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--t-text-secondary);
+    transition: color 120ms ease-out;
+  }
+
+  .reel__card:hover .reel__title {
+    color: var(--t-brand);
+  }
+
+  /* ── Music player ───────────────────────────────────────────────── */
+  .player {
+    border: 1px solid var(--t-border-subtle);
+    background: var(--t-surface);
+  }
+
+  .player iframe {
+    display: block;
+    border: 0;
+  }
+
+  /* ── Connect links ──────────────────────────────────────────────── */
+  .links {
+    display: grid;
+    gap: 1px;
+    margin: 0;
+    padding: 1px;
+    list-style: none;
+    background: var(--t-border-subtle);
+    border: 1px solid var(--t-border-subtle);
+  }
+
+  @media (min-width: 40rem) {
+    .links {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .links {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .links__item {
+    background: var(--t-bg-deep);
+  }
+
+  .links__card {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    height: 100%;
+    padding: 0.875rem 1rem;
+    text-decoration: none;
+    transition: background-color 120ms ease-out;
+  }
+
+  .links__card:hover {
+    background: var(--t-surface);
+  }
+
+  .links__card:focus-visible {
+    outline: 2px solid var(--t-brand);
+    outline-offset: -2px;
+  }
+
+  /* The frontmatter icons are bare <path> markup, so the tile and the glyph
+     both live on the wrapping <svg> — there is no intermediate span. */
+  .links__icon-svg {
+    display: block;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0.625rem;
+    flex-shrink: 0;
+    background: var(--t-surface-2);
+    color: var(--t-text-secondary);
+    transition: color 120ms ease-out;
+  }
+
+  .links__card:hover .links__icon-svg {
+    color: var(--t-brand);
+  }
+
+  .links__name {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    color: var(--t-text);
+  }
+
+  .links__arrow {
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
+    color: var(--t-text-muted);
+    transition:
+      transform 120ms ease-out,
+      color 120ms ease-out;
+  }
+
+  .links__card:hover .links__arrow {
+    color: var(--t-brand);
+    transform: translateX(0.125rem);
+  }
+
+  /* ── About ──────────────────────────────────────────────────────── */
+  .about p {
+    margin: 0 0 1.125rem;
+    font-size: 1.0625rem;
+    line-height: 1.85;
+    color: var(--t-text-secondary);
+  }
+
+  .about p strong {
+    color: var(--t-text);
+    font-weight: 600;
+  }
+
+  /* ── Footer ─────────────────────────────────────────────────────── */
+  .site-footer {
+    border-top: 1px solid var(--t-border-subtle);
+    padding-block: 2.5rem;
+  }
+
+  .site-footer__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+    max-width: 72rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  .site-footer__mark {
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    background: var(--t-brand);
+    color: var(--t-brand-ink);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .site-footer__text,
+  .site-footer__meta {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--t-text-muted);
+  }
+
+  .site-footer__meta {
+    margin-inline-start: auto;
+  }
+
+  /* ── Ticker ─────────────────────────────────────────────────────
+     Decorative strip under the hero. The track holds two identical sets and
+     slides by exactly half its width, so the loop has no visible seam. */
+  .marquee {
+    border-block: 1px solid var(--t-border-subtle);
+    background: var(--t-bg-deep);
+    overflow: hidden;
+    padding-block: 0.75rem;
+  }
+
+  .marquee__set {
+    display: flex;
+    gap: 2.5rem;
+    padding-inline-end: 2.5rem;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--t-text-muted);
+  }
+
+  .marquee__set span {
+    display: inline-flex;
+    align-items: center;
+    gap: 2.5rem;
+  }
+
+  .marquee__set span::after {
+    content: "·";
+    color: var(--t-brand);
+  }
+
+  /* ── Music visualiser ─────────────────────────────────────────────
+     Rings sit behind the player and never intercept pointer events. */
+  .visualiser {
+    position: relative;
+  }
+
+  .visualiser__rings {
+    position: absolute;
+    inset: -1.5rem;
+    pointer-events: none;
+  }
+</style>

@@ -1,0 +1,451 @@
+---
+/* Theme switcher.
+   Opens over the page with T, shows every theme as a live preview card, and
+   takes arrow keys / Enter / Escape — the same muscle memory as Alt+Tab.
+
+   Each card sets data-theme on itself, so the theme CSS blocks underneath
+   paint that card in its own colours for free. Nothing is mocked or
+   hard-coded: what you see is exactly what the site will become. */
+import { THEMES } from '../themes';
+---
+
+<div class="switcher" data-switcher hidden role="dialog" aria-modal="true" aria-label="Choose a theme">
+  <div class="switcher__scrim" data-switcher-close></div>
+
+  <div class="switcher__panel">
+    <header class="switcher__head">
+      <span class="switcher__title">Themes</span>
+      <span class="switcher__count">{THEMES.length}</span>
+      <span class="switcher__keys" aria-hidden="true">
+        <kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd>
+        <kbd>Enter</kbd>
+        <kbd>Esc</kbd>
+      </span>
+    </header>
+
+    <div class="switcher__grid" data-switcher-grid>
+      {
+        THEMES.map((theme, i) => (
+          <button
+            type="button"
+            class="switcher__card"
+            data-theme={theme.id}
+            data-switcher-card={theme.id}
+            style={`--i:${i}`}
+            aria-label={`Use the ${theme.name} theme`}
+          >
+            <span class="switcher__bar">
+              <span class="switcher__dot" />
+              <span class="switcher__dot" />
+              <span class="switcher__dot" />
+            </span>
+
+            <span class="switcher__lines">
+              <span class="switcher__line switcher__line--head" />
+              <span class="switcher__line" />
+              <span class="switcher__line switcher__line--short" />
+            </span>
+
+            <span class="switcher__sample">
+              <span class="switcher__pill">PeDitX</span>
+              <span class="switcher__pill switcher__pill--ghost">Open</span>
+            </span>
+
+            <span class="switcher__name">{theme.name}</span>
+            {theme.light && <span class="switcher__badge">light</span>}
+          </button>
+        ))
+      }
+    </div>
+  </div>
+</div>
+
+<style>
+  .switcher {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: grid;
+    /* The implicit track is `auto`, which resolves to max-content here — so
+       22 cards widened it to 6898px inside a 1440px overlay and the panel was
+       laid out far off-screen. Clamping the track to the overlay's own width
+       is what actually keeps the dialog on the page. */
+    grid-template-columns: minmax(0, 1fr);
+    place-items: center;
+    padding: 1.25rem;
+  }
+
+  .switcher__panel {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .switcher[hidden] {
+    display: none;
+  }
+
+  .switcher__scrim {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 0.55);
+    backdrop-filter: blur(3px);
+  }
+
+  .switcher__panel {
+    position: relative;
+    width: min(72rem, 100%);
+    max-height: min(86vh, 56rem);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--t-border-strong);
+    background: var(--t-bg);
+    box-shadow: 0 24px 60px rgb(0 0 0 / 0.4);
+    animation: switcher-in 180ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  @keyframes switcher-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .switcher__head {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--t-border-subtle);
+    font-family: var(--font-mono);
+  }
+
+  .switcher__title {
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--t-text);
+  }
+
+  .switcher__count {
+    font-size: 0.75rem;
+    color: var(--t-text-muted);
+  }
+
+  .switcher__keys {
+    display: none;
+    margin-inline-start: auto;
+    gap: 0.3125rem;
+    align-items: center;
+  }
+
+  @media (min-width: 48rem) {
+    .switcher__keys {
+      display: flex;
+    }
+  }
+
+  .switcher__keys kbd {
+    padding: 0.125rem 0.375rem;
+    border: 1px solid var(--t-border-subtle);
+    background: var(--t-surface);
+    color: var(--t-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    line-height: 1.5;
+  }
+
+  /* Scroll container: on a phone the grid stacks down the page instead of
+     trying to fit, so it stays usable with a thumb. */
+  /* Cards overlap on every side, so the row reads as a stack of windows
+     rather than a table of tiles — the way Alt+Tab shows its thumbnails.
+     Negative margins do the overlapping; z-index decides who is in front. */
+  .switcher__grid {
+    /* Task View, not Alt+Tab: one horizontal row of big window previews that
+       the wheel pushes through. "safe center" keeps a short list centred
+       without the usual overflow bug where the first cards scroll off the
+       left edge and can never be reached. */
+    /* A flex item defaults to min-width:auto, so it refuses to shrink below
+       its content: 22 cards at 336px ballooned this box to 6896px and pushed
+       the whole strip outside the viewport, which is why the menu showed the
+       backdrop and nothing else. min-width:0 plus a width of 100% pins it to
+       the panel, and the scroll does the rest. */
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior: contain;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0;
+    padding: 1rem;
+    justify-content: flex-start;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+  }
+
+  .switcher__card {
+    /* One row, so cards have to be wide enough to read as previews rather
+       than as tabs. */
+    flex: 0 0 auto;
+    width: clamp(15rem, 26vw, 21rem);
+    margin: -0.75rem;
+    z-index: 1;
+    scroll-snap-align: center;
+  }
+
+  /* The selected window slides forward out of the stack: brought toward the
+     viewer, undimmed, and raised above its neighbours. */
+  .switcher__card.is-active {
+    z-index: 5;
+    transform: translate(0, -0.5rem) scale(1.09);
+    box-shadow: 0 18px 34px rgb(0 0 0 / 0.4);
+    filter: none;
+  }
+
+  /* Each card is its own themed island. */
+  .switcher__card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.625rem;
+    border: 1px solid var(--t-border-subtle);
+    background: var(--t-bg);
+    color: var(--t-text);
+    text-align: start;
+    cursor: pointer;
+    transition: border-color 120ms ease-out, transform 180ms cubic-bezier(0.2, 0, 0, 1),
+      filter 180ms ease-out;
+    /* Slanted left and right edges, as on omarchy's own previews. The border
+       follows the shape because it is clipped with everything else. */
+    clip-path: polygon(2.5% 0%, 100% 0%, 97.5% 100%, 0% 100%);
+    /* Cards arrive from the right, the way a stack settles into place. */
+    animation: switcher-slide 340ms cubic-bezier(0.2, 0, 0, 1) backwards;
+    animation-delay: calc(var(--i) * 22ms);
+    /* Distant windows sit back: the inactive ones recede so the stack reads
+       as depth rather than a flat row. */
+    filter: saturate(0.7) brightness(0.82);
+  }
+
+  @keyframes switcher-slide {
+    from {
+      opacity: 0;
+      transform: translateX(3.5rem) scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .switcher__card:hover {
+    border-color: var(--t-border-strong);
+  }
+
+  .switcher__card.is-active {
+    border-color: var(--t-brand);
+    box-shadow: 0 0 0 1px var(--t-brand);
+  }
+
+  .switcher__bar {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.3125rem 0.375rem;
+    background: var(--t-bg-deep);
+    border: 1px solid var(--t-border-subtle);
+  }
+
+  .switcher__dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    background: var(--t-border-strong);
+  }
+
+  .switcher__dot:first-child {
+    background: var(--t-brand);
+  }
+
+  .switcher__lines {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.5rem 0.375rem;
+    background: var(--t-surface);
+    border: 1px solid var(--t-border-subtle);
+  }
+
+  .switcher__line {
+    height: 0.375rem;
+    background: var(--t-text-muted);
+    opacity: 0.55;
+  }
+
+  .switcher__line--head {
+    width: 62%;
+    height: 0.625rem;
+    background: var(--t-text);
+    opacity: 1;
+  }
+
+  .switcher__line--short {
+    width: 42%;
+    background: var(--t-brand);
+    opacity: 0.8;
+  }
+
+  .switcher__sample {
+    display: flex;
+    gap: 0.375rem;
+  }
+
+  .switcher__pill {
+    padding: 0.1875rem 0.5rem;
+    background: var(--t-brand);
+    color: var(--t-brand-ink);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+  }
+
+  .switcher__pill--ghost {
+    background: transparent;
+    border: 1px solid var(--t-border-strong);
+    color: var(--t-text);
+  }
+
+  .switcher__name {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--t-text);
+  }
+
+  .switcher__badge {
+    position: absolute;
+    top: 0.5rem;
+    inset-inline-end: 0.5rem;
+    padding: 0.0625rem 0.3125rem;
+    border: 1px solid var(--t-border-subtle);
+    background: var(--t-bg-deep);
+    color: var(--t-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .switcher__panel {
+      animation: none;
+    }
+  }
+</style>
+
+<script>
+  const overlay = document.querySelector<HTMLElement>('[data-switcher]');
+  const cards = [...(overlay?.querySelectorAll<HTMLElement>('[data-switcher-card]') ?? [])];
+  const STORAGE_KEY = 'peditx-site-theme';
+
+  const activeId = () => document.documentElement.dataset.theme || 'tokyo-night';
+
+  let index = Math.max(0, cards.findIndex((c) => c.dataset.switcherCard === activeId()));
+
+  /* Scroll the active card into view without yanking the page around. */
+  function highlight(next: number, scroll = true) {
+    index = (next + cards.length) % cards.length;
+    cards.forEach((c, i) => c.classList.toggle('is-active', i === index));
+    if (scroll) cards[index]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+
+  function open() {
+    if (!overlay) return;
+    overlay.hidden = false;
+    document.documentElement.style.overflow = 'hidden';
+    highlight(Math.max(0, cards.findIndex((c) => c.dataset.switcherCard === activeId())), true);
+    /* highlight() scrolls the current theme into view, which on a 22-card row
+       lands the strip somewhere near the far end and makes the dialog look
+       empty on open. Task View always starts at the first window: select the
+       current theme but bring the row back to the start. */
+    const grid = document.querySelector<HTMLElement>('.switcher__grid');
+    if (grid) grid.scrollLeft = 0;
+  }
+
+  function close() {
+    if (!overlay) return;
+    overlay.hidden = true;
+    document.documentElement.style.overflow = '';
+  }
+
+  const isOpen = () => overlay?.hidden === false;
+
+  /* Commit the highlighted theme and close, the way Alt+Tab does. */
+  function commit() {
+    const id = cards[index]?.dataset.switcherCard;
+    if (!id) return;
+    document.documentElement.dataset.theme = id;
+    try {
+      localStorage.setItem(STORAGE_KEY, id);
+    } catch {
+      /* Private mode — the theme still holds for this visit. */
+    }
+    document.dispatchEvent(new CustomEvent('peditx:theme', { detail: id }));
+    close();
+  }
+
+  overlay?.querySelector('[data-switcher-close]')?.addEventListener('click', close);
+
+  /* The always-visible "T" chip in the header. */
+  document.querySelectorAll('[data-switcher-open]').forEach((el) =>
+    el.addEventListener('click', open)
+  );
+
+  cards.forEach((card, i) => {
+    card.addEventListener('click', () => {
+      highlight(i, false);
+      commit();
+    });
+    /* Hovering moves the selection, so a mouse user never has to reach for
+       the keyboard to confirm. */
+    card.addEventListener('pointerenter', () => highlight(i, false));
+  });
+
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    const typing =
+      t instanceof HTMLElement &&
+      (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+
+    if (!isOpen()) {
+      /* T opens the switcher — but not while the visitor is typing. */
+      if (e.key?.toLowerCase() === 't' && !e.ctrlKey && !e.metaKey && !e.altKey && !typing) {
+        e.preventDefault();
+        open();
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'Escape':
+        e.preventDefault();
+        close();
+        break;
+      case 'ArrowRight':
+      case 'ArrowDown':
+        e.preventDefault();
+        highlight(index + 1);
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        e.preventDefault();
+        highlight(index - 1);
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        commit();
+        break;
+    }
+  });
+</script>

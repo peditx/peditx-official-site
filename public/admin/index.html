@@ -1,126 +1,892 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <!-- Favicons -->
-  <link rel="icon" href="/favicon.ico" type="image/x-icon">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-
-  <!-- 
-    FINAL FIX 1: Reverted to the original, correct path.
-    This was likely the cause of all problems.
-  -->
-  <link href="/admin/config.yml" type="text/yaml" rel="cms-config-url">
-
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#121212">
-
-  <title>Content Manager</title>
-
-  <!-- Dark Mode + Mobile Friendly CSS -->
-  <style>
-    /* Dark Mode */
-    body {
-      background-color: #121212;
-      color: #ffffff;
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-
-    /* Mobile Friendly */
-    html, body {
-      width: 100%;
-      height: 100%;
-    }
-
-    /* Make CMS container flexible */
-    .cms-root, #nc-root {
-      max-width: 100%;
-      padding: 1rem;
-      box-sizing: border-box;
-    }
-
-    a {
-      color: #90caf9; /* لینک‌های روشن روی دارک مود */
-    }
-
-    /* Scrollbar بهتر برای دارک مود */
-    ::-webkit-scrollbar {
-      width: 10px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #1e1e1e;
-    }
-    ::-webkit-scrollbar-thumb {
-      background-color: #444;
-      border-radius: 5px;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>PeDitX · Add content</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2rem 1rem 4rem;
+    background: #12131a; color: #d5d8e0;
+    font: 15px/1.6 ui-sans-serif, system-ui, "Segoe UI", Vazirmatn, sans-serif;
+  }
+  main, #gate { max-width: 40rem; margin-inline: auto; }
+  h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1rem; margin: 0 0 .75rem; }
+  .hint { color: #8a8f9c; font-size: .85rem; margin: .25rem 0 .75rem; }
+  section { border: 1px solid #262a36; border-radius: 10px; padding: 1rem; margin-top: 1.25rem; background: #171923; }
+  label { display: block; margin-bottom: .75rem; font-size: .85rem; color: #9aa0ad; }
+  input, select, textarea {
+    display: block; width: 100%; margin-top: .3rem; padding: .55rem .65rem;
+    background: #0e0f15; color: inherit; border: 1px solid #2c313f; border-radius: 6px;
+    font: inherit;
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid #4a7dff; outline-offset: 1px; border-color: transparent; }
+  input[type="checkbox"] { display: inline-block; width: auto; margin-top: 0; padding: 0; }
+  textarea { resize: vertical; }
+  .thumbs { display: flex; gap: .75rem; flex-wrap: wrap; margin: .25rem 0 .75rem; }
+  .thumbs figure { margin: 0; }
+  .thumbs img { display: none; width: 84px; height: 84px; object-fit: cover; border-radius: 8px; border: 1px solid #2c313f; background: #0e0f15; }
+  .thumbs figcaption { font-size: .72rem; color: #8a8f9c; margin-top: .2rem; }
+  #link-preview { display: block; margin-top: .5rem; color: #e6e9f0; }
+  button {
+    padding: .55rem 1.1rem; border: 0; border-radius: 6px; cursor: pointer;
+    background: #2f6a44; color: #eafff2; font: inherit; font-weight: 600;
+  }
+  button:hover { background: #3a8155; }
+  button[disabled] { opacity: .55; cursor: default; }
+  .row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+  #log { display: block; margin-top: 1rem; font-size: .9rem; white-space: pre-wrap; word-break: break-word; }
+  #log:empty { display: none; }
+  #log.err { color: #ff8f8f; }
+  #log.ok { color: #8ce6b0; }
+  #thumb { display: none; width: 160px; height: 90px; object-fit: cover; border-radius: 6px; border: 1px solid #2c313f; margin-top: .5rem; }
+  code { background: #0e0f15; padding: .1rem .3rem; border-radius: 4px; }
+  h3 { font-size: .8rem; margin: 1.1rem 0 .3rem; color: #9aa0ad; text-transform: uppercase; letter-spacing: .06em; }
+  .items { list-style: none; margin: .5rem 0 0; padding: 0; }
+  .items li { display: flex; align-items: center; gap: .4rem; padding: .4rem 0; border-top: 1px solid #22252f; }
+  .items .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .items button { padding: .25rem .55rem; font-size: .8rem; font-weight: 500; background: #2c313f; color: inherit; }
+  .items button:hover { background: #3a4152; }
+  .items button:disabled { opacity: .35; }
+  .note { color: #ffd479; margin-top: .75rem; }
+</style>
 </head>
 <body>
-  <!-- Load Decap CMS -->
-  <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+<div id="gate">
+  <h1>Sign in</h1>
+  <section>
+    <h2>PeDitX · admin</h2>
+    <form id="login-form">
+      <label>Username <input name="user" autocomplete="username" required></label>
+      <label>Password <input name="pass" type="password" autocomplete="current-password" required></label>
+      <button type="submit">Enter</button>
+    </form>
+    <p class="hint">
+      Stops other visitors from reaching the panel. The check runs in your browser, so treat it
+      as a door rather than a wall — for a real lock put a Cloudflare Access policy on <code>/admin*</code>.
+    </p>
+  </section>
+</div>
 
-  <!-- 
-    FINAL FIX 2: Using the official 'decap-cms-init' event.
-    This is much more reliable than window.load or setTimeout.
-  -->
-  <script>
-    // Register Service Worker on window load
-    window.addEventListener('load', function() {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').then(
-          function(registration) {
-            console.log('ServiceWorker registration successful');
-          }, 
-          function(err) {
-            console.log('ServiceWorker registration failed: ', err);
-          }
-        );
+<main id="app" hidden>
+  <h1>Add content</h1>
+  <p class="hint">
+    Writes one markdown file into <code id="repo-label"></code> and pushes it to
+    <code>main</code> — Cloudflare Pages rebuilds the site in about a minute.
+    Nothing else is stored: no database, no server.
+    <a href="#" id="signout">Sign out</a>
+  </p>
+
+  <section>
+    <h2>1 · GitHub token</h2>
+    <label>
+      Fine-grained personal access token
+      <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…">
+    </label>
+    <p class="hint">
+      GitHub → Settings → Developer settings → Personal access tokens → <b>Fine-grained tokens</b> →
+      only this repository, <b>Contents: Read and write</b>. Saved in this browser only.
+      <a href="#" id="forget">Forget it</a>
+    </p>
+  </section>
+
+  <section>
+    <h2>2 · Projects</h2>
+    <form id="project-form">
+      <label>Name <input name="name" required maxlength="80" placeholder="OpenWrt-Foo"></label>
+      <label>URL <input name="url" type="url" required placeholder="https://github.com/peditx/foo"></label>
+      <label>Description <input name="description" required maxlength="300" placeholder="One line, shown under the name"></label>
+      <label>Icon URL (optional) <input name="iconUrl" type="url" placeholder="https://placehold.co/64x64/1a1a1a/ffffff?text=FOO"></label>
+      <div class="row">
+        <button type="submit" id="project-submit">Commit project</button>
+        <a href="#" class="hint" id="project-cancel" hidden>Cancel editing</a>
+      </div>
+    </form>
+    <p class="hint note" id="project-editing" hidden></p>
+    <h3>On the site — ↑ ↓ reorders, Edit loads it into the form</h3>
+    <ul class="items" id="project-items"></ul>
+    <p class="hint" id="project-empty" hidden></p>
+  </section>
+
+  <section>
+    <h2>3 · Videos</h2>
+    <form id="video-form">
+      <label>Title <input name="title" required maxlength="120" placeholder="How to install X"></label>
+      <label>YouTube ID <input name="videoId" required maxlength="11" placeholder="b2C4dGTV-wg"></label>
+      <img id="thumb" alt="Video thumbnail preview">
+      <div class="row">
+        <button type="submit" id="video-submit">Commit video</button>
+        <a href="#" class="hint" id="video-cancel" hidden>Cancel editing</a>
+      </div>
+    </form>
+    <p class="hint note" id="video-editing" hidden></p>
+    <h3>On the site — ↑ ↓ reorders, Edit loads it into the form</h3>
+    <ul class="items" id="video-items"></ul>
+    <p class="hint" id="video-empty" hidden></p>
+  </section>
+
+  <section>
+    <h2>4 · New HTML page</h2>
+    <form id="page-form">
+      <label>Path <input name="path" maxlength="40" placeholder="ai" autocapitalize="none" spellcheck="false"></label>
+      <label>File <input name="file" type="file" accept=".html,.htm,.css,.js,.json,.svg,.png,.jpg,.webp,.txt"></label>
+      <button type="submit">Commit page</button>
+    </form>
+    <p class="hint">
+      Creates <code>public/&lt;path&gt;/index.html</code> → opens at <code>/&lt;path&gt;/</code>.
+      Submit again with the same path to add the page's assets (<code>style.css</code>,
+      <code>app.js</code>…), or to replace a file you already pushed.
+    </p>
+  </section>
+  <section>
+    <h2>5 · Settings</h2>
+    <form id="settings-form">
+      <label>Profile image — what Google puts in the knowledge panel
+        <input name="profileImage" required maxlength="300" placeholder="/peditx.jpg" spellcheck="false" autocapitalize="none"></label>
+      <label>Website image — the preview shown when the site is shared
+        <input name="websiteImage" required maxlength="300" placeholder="/PeDitX.png" spellcheck="false" autocapitalize="none"></label>
+      <label>Logo — the brand mark (<code>WebSite.logo</code>)
+        <input name="logo" required maxlength="300" placeholder="/PeDitX.png" spellcheck="false" autocapitalize="none"></label>
+      <label>Description — one line for the knowledge panel, <code>og:description</code> and <code>meta description</code>
+        <textarea name="description" rows="2" required maxlength="300"></textarea></label>
+      <div class="thumbs">
+        <figure><img id="pv-profileImage" alt="Profile image"><figcaption>Profile</figcaption></figure>
+        <figure><img id="pv-websiteImage" alt="Website image"><figcaption>Website</figcaption></figure>
+        <figure><img id="pv-logo" alt="Logo"><figcaption>Logo</figcaption></figure>
+      </div>
+      <button type="submit">Save settings</button>
+    </form>
+    <p class="hint">
+      Three separate pictures on purpose: the knowledge panel wants a photo of the person, not the
+      logo. Each field takes a path on the site (<code>/peditx.jpg</code>) or a full URL — upload
+      the file through <b>4 · New HTML page</b> if it is not hosted yet. Saved to
+      <code>src/content/site.json</code>.
+    </p>
+  </section>
+
+  <section>
+    <h2>6 · Social links</h2>
+    <form id="link-form">
+      <label>Name <input name="name" required maxlength="60" placeholder="YouTube"></label>
+      <label>URL <input name="url" type="url" required placeholder="https://youtube.com/c/peditx"></label>
+      <label>Logo — pick one already on the site, or paste the SVG below
+        <select name="brand"><option value="">— pick a logo —</option></select></label>
+      <span id="link-preview"></span>
+      <label>Solid mark (filled shape, like YouTube) <input name="solid" type="checkbox"></label>
+      <label>Icon (raw SVG) <textarea name="icon" rows="3" spellcheck="false" placeholder="&lt;path d='…'&gt;"></textarea></label>
+      <div class="row">
+        <button type="submit" id="link-submit">Commit link</button>
+        <a href="#" class="hint" id="link-cancel" hidden>Cancel editing</a>
+      </div>
+    </form>
+    <p class="hint note" id="link-editing" hidden></p>
+    <p class="hint">
+      These are the <code>sameAs</code> links Google uses to tie every profile to this domain —
+      the backbone of a knowledge panel. Written to <code>src/content/links/</code>.
+    </p>
+    <h3>On the site — Edit loads it into the form</h3>
+    <ul class="items" id="link-items"></ul>
+    <p class="hint" id="link-empty" hidden></p>
+  </section>
+
+</main>
+
+<output id="log"></output>
+
+<script>
+(function () {
+  'use strict';
+
+  const REPO = 'peditx/peditx-official-site';
+  const BRANCH = 'main';
+  const API = 'https://api.github.com/repos/' + REPO + '/contents/';
+  const TOKEN_KEY = 'peditx-admin-token';
+
+  const $ = (sel) => document.querySelector(sel);
+  const log = (msg, kind) => { const el = $('#log'); el.textContent = msg; el.className = kind || ''; };
+
+  /* Paths are kept raw everywhere and encoded once, here. */
+  const enc = (p) => p.split('/').map(encodeURIComponent).join('/');
+
+  /* ── helpers (self-tested via ?selftest) ─────────────────────────── */
+
+  /* YAML-safe single-line scalar: newlines collapse, quotes and
+     backslashes escape. Anything else is literal. */
+  function yaml(v) {
+    return '"' + String(v).replace(/\s*\n\s*/g, ' ').replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+  }
+
+  /* UTF-8 → base64 (GitHub needs base64, btoa wants binary). */
+  function b64(text) {
+    const bytes = new TextEncoder().encode(text);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+
+  /* ── frontmatter ─────────────────────────────────────────────────── */
+
+  const has = (obj, k) => Object.prototype.hasOwnProperty.call(obj, k);
+
+  /* Every line of the head as [key, rawValue] pairs, order preserved. */
+  function parseFront(text) {
+    const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
+    if (!m) return [];
+    return m[1].split(/\r?\n/)
+      .filter((l) => l.trim() && !/^\s*#/.test(l))
+      .map((l) => {
+        const i = l.indexOf(':');
+        return i < 0 ? [l.trim(), ''] : [l.slice(0, i).trim(), l.slice(i + 1).trim()];
+      });
+  }
+
+  /* Booleans stay unquoted: YAML reads "true" as text, and the content schema
+     wants a real boolean. */
+  function scalar(v) {
+    return typeof v === 'boolean' ? String(v) : yaml(v);
+  }
+
+  /* values: string → set it, null → drop the key, absent → leave it alone.
+     Keys we do not know about (slug, anything added later) survive edits,
+     and so does everything after the closing --- (tail). */
+  function applyFront(pairs, values, tail) {
+    const out = [];
+    pairs.forEach(([k, v]) => {
+      if (!has(values, k)) return out.push([k, v]);
+      if (values[k] !== null && values[k] !== undefined) out.push([k, scalar(values[k])]);
+    });
+    Object.keys(values).forEach((k) => {
+      if (values[k] === null || values[k] === undefined) return;
+      if (!out.some((p) => p[0] === k)) out.push([k, scalar(values[k])]);
+    });
+    return '---\n' + out.map((p) => p[0] + ': ' + p[1]).join('\n') + '\n---\n' + (tail || '');
+  }
+
+  /* Reads a stored scalar back into a form field. */
+  function frontValue(pairs, key) {
+    const p = pairs.find((x) => x[0] === key);
+    if (!p) return '';
+    const v = p[1].trim();
+    if (v.length > 1 && v[0] === "'" && v[v.length - 1] === "'") return v.slice(1, -1).replace(/''/g, "'");
+    if (v.length > 1 && v[0] === '"' && v[v.length - 1] === '"') return v.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    return v;
+  }
+
+  function unb64(text) {
+    const bin = atob(text.replace(/\s/g, ''));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
+  /* ── GitHub ──────────────────────────────────────────────────────── */
+
+  function token() { return $('#token').value.trim(); }
+
+  function fail(res, body) {
+    const err = new Error(
+      'GitHub ' + res.status + ': ' + ((body && body.message) || res.statusText || 'request failed')
+      + (res.status === 401 || res.status === 403 ? '\nCheck the token (needs Contents: Read and write on ' + REPO + ').' : '')
+      + (res.status === 422 ? '\nThat file already exists — rename it first.' : '')
+    );
+    err.status = res.status;
+    return err;
+  }
+
+  async function api(path, init) {
+    /* Reads stay anonymous: the repo is public, so a missing or expired
+       token must not be able to break the lists. Writes still need it. */
+    const method = (init && init.method) || 'GET';
+    const headers = {
+      'X-GitHub-Api-Version': '2022-11-28',
+      Accept: 'application/vnd.github+json'
+    };
+    if (method !== 'GET' && token()) headers.Authorization = 'Bearer ' + token();
+    const res = await fetch(API + enc(path), Object.assign({ headers }, init));
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw fail(res, body);
+    return body;
+  }
+
+  /* `update` looks the file up first, so a re-submit replaces it. Without it
+     GitHub's 422 doubles as the collision check on a name you typed. */
+  async function commit(path, text, message, update) {
+    const body = { message: message, content: b64(text), branch: BRANCH };
+    if (update) {
+      try { body.sha = (await api(path)).sha; }
+      catch (e) { if (e.status !== 404) throw e; }
+    }
+    const data = await api(path, { method: 'PUT', body: JSON.stringify(body) });
+    return data.commit && data.commit.html_url;
+  }
+
+  /* ── forms ───────────────────────────────────────────────────────── */
+
+  const DIRS = { projects: 'src/content/projects', videos: 'src/content/videos', links: 'src/content/links' };
+  const SUBMIT_LABEL = { projects: 'Commit project', videos: 'Commit video', links: 'Commit link' };
+  const stem = (kind) => (kind === 'projects' ? 'project' : kind === 'links' ? 'link' : 'video');
+  const state = {
+    files: { projects: [], videos: [] },
+    order: { projects: [], videos: [] },
+    orderLoaded: false,
+    editing: { projects: null, videos: null },
+    loaded: { projects: false, videos: false }
+  };
+
+  async function run(form, build) {
+    const btn = form.querySelector('button');
+    btn.disabled = true;
+    log('Pushing…');
+    try {
+      if (!token()) throw new Error('Paste your GitHub token first (step 1).');
+      const job = await build(new FormData(form));
+      const url = await commit(job.path, job.text, job.message, job.update);
+      log('Done → ' + job.label + (url ? '\n' + url + '\nCloudflare Pages rebuilds in ~1 min.' : ''), 'ok');
+      form.reset();
+      $('#thumb').style.display = 'none';
+      if (job.after) job.after();
+    } catch (e) {
+      log(e.message, 'err');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /* File names become paths: no directory separators (everything else is
+     percent-encoded by enc() on the way out). */
+  function checkName(v) {
+    return v.trim() !== '' && !/[\\/]/.test(v);
+  }
+
+  $('#project-form').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const d = Object.fromEntries(new FormData(ev.target));
+    if (!checkName(d.name)) return log('Name cannot be empty or contain / or \\.', 'err');
+    let u; try { u = new URL(d.url); } catch { return log('URL is not valid.', 'err'); }
+    if (!/^https?:$/.test(u.protocol)) return log('URL must be http(s).', 'err');
+
+    const values = { name: d.name.trim(), description: d.description.trim(), url: d.url.trim() };
+    const icon = (d.iconUrl || '').trim();
+    if (icon) values.iconUrl = icon;
+
+    const edit = state.editing.projects;
+    run(ev.target, () => ({
+      path: edit ? edit.path : DIRS.projects + '/' + d.name.trim() + ' Project.md',
+      label: edit ? edit.path : DIRS.projects + '/' + d.name.trim() + ' Project.md',
+      text: applyFront(edit ? edit.pairs : [], values, edit && edit.tail),
+      message: (edit ? 'content: update project ' : 'content: add project ') + d.name.trim(),
+      update: !!edit,
+      after: () => { endEdit('projects'); refresh('projects'); }
+    }));
+  });
+
+  $('#video-form').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const d = Object.fromEntries(new FormData(ev.target));
+    d.videoId = d.videoId.trim();
+    if (!checkName(d.title)) return log('Title cannot be empty or contain / or \\.', 'err');
+    if (!/^[\w-]{11}$/.test(d.videoId)) return log('YouTube ID must be exactly 11 characters.', 'err');
+
+    const values = { title: d.title.trim(), videoId: d.videoId };
+    const edit = state.editing.videos;
+    const autoThumb = () => { values.thumbnailUrl = 'https://i.ytimg.com/vi/' + d.videoId + '/hqdefault.jpg'; };
+    if (!edit) {
+      autoThumb();
+    } else {
+      /* Only a thumbnail we generated follows a changed id — a hand-picked
+         one is left exactly as it is. */
+      const oldId = frontValue(edit.pairs, 'videoId');
+      const oldThumb = frontValue(edit.pairs, 'thumbnailUrl');
+      if (!oldThumb || oldThumb.indexOf('/vi/' + oldId + '/') !== -1) autoThumb();
+    }
+
+    run(ev.target, () => ({
+      path: edit ? edit.path : DIRS.videos + '/' + d.title.trim() + '.md',
+      label: edit ? edit.path : DIRS.videos + '/' + d.title.trim() + '.md',
+      text: applyFront(edit ? edit.pairs : [], values, edit && edit.tail),
+      message: (edit ? 'content: update video ' : 'content: add video ') + d.title.trim(),
+      update: !!edit,
+      after: () => { endEdit('videos'); refresh('videos'); }
+    }));
+  });
+
+  $('#video-form').videoId.addEventListener('input', (ev) => {
+    const id = ev.target.value.trim();
+    const img = $('#thumb');
+    if (/^[\w-]{11}$/.test(id)) {
+      img.src = 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg';
+      img.style.display = 'block';
+    } else {
+      img.style.display = 'none';
+    }
+  });
+
+  /* ── lists: read, edit, reorder ───────────────────────────────────── */
+
+  const el = (tag, cls) => { const n = document.createElement(tag); if (cls) n.className = cls; return n; };
+  const action = (text, enabled, fn) => {
+    const b = el('button');
+    b.type = 'button';
+    b.textContent = text;
+    b.disabled = !enabled;
+    b.addEventListener('click', fn);
+    return b;
+  };
+
+  async function refresh(kind) {
+    try {
+      const items = await api(DIRS[kind]);
+      state.files[kind] = (Array.isArray(items) ? items : [])
+        .filter((f) => f.type === 'file' && /\.md$/i.test(f.name))
+        .sort((a, b) => rank(kind, a.name) - rank(kind, b.name) || a.name.localeCompare(b.name));
+      state.loaded[kind] = true;
+      render(kind);
+      if (kind === 'links') fillBrands();
+      setHint(kind, 'Nothing here yet.', state.files[kind].length > 0);
+    } catch (e) {
+      setHint(kind, 'Could not read the list: ' + e.message, false);
+    }
+  }
+
+  function setHint(kind, text, hide) {
+    const hint = $('#' + stem(kind) + '-empty');
+    hint.textContent = text;
+    hint.hidden = !!hide;
+  }
+
+  /* order.json decides what is on top; anything it never heard of goes last. */
+  function rank(kind, name) {
+    const list = state.order[kind] || [];
+    const i = list.indexOf(name);
+    return i === -1 ? list.length : i;
+  }
+
+  function render(kind) {
+    const ul = $('#' + stem(kind) + '-items');
+    const files = state.files[kind];
+    ul.textContent = '';
+    files.forEach((file, i) => {
+      const li = el('li');
+      const label = el('span', 'label');
+      label.textContent = file.name;
+      li.append(label);
+      /* Reordering lives in order.json, which only carries projects and
+         videos — the site does not sort links yet. */
+      if (kind !== 'links') {
+        li.append(action('↑', i > 0, () => move(kind, i, -1)));
+        li.append(action('↓', i < files.length - 1, () => move(kind, i, 1)));
       }
+      li.append(action('Edit', true, () => startEdit(kind, file)));
+      ul.append(li);
     });
+  }
 
-    // Register Dark Mode styles when CMS is ready
-    window.addEventListener('decap-cms-init', () => {
-      const css = `
-        :root {
-          --primary-light: #6f7b9a !important;
-          --primary: #3f51b5 !important;
-          --primary-dark: #2d3142 !important;
-          --background-light: #2a2a2a !important;
-          --background: #1e1e1e !important;
-          --background-dark: #121212 !important;
-          --text-light: #ffffff !important;
-          --text: #e0e0e0 !important;
-          --text-dark: #b3b3b3 !important;
-          --border-light: #555 !important;
-          --border: #444 !important;
-          --border-dark: #333 !important;
-          --surface-light: #333 !important;
-          --surface: #2a2a2a !important;
-          --surface-dark: #222 !important;
-          --status-success: #66bb6a !important;
-          --status-success-light: #81c784 !important;
-          --status-warning: #ffa726 !important;
-          --status-warning-light: #ffb74d !important;
-          --status-error: #f44336 !important;
-          --status-error-light: #ef5350 !important;
-          --text-on-primary: #ffffff !important;
-          --text-on-success: #000000 !important;
-          --text-on-warning: #000000 !important;
-          --text-on-error: #ffffff !important;
+  async function move(kind, i, dir) {
+    if (!token()) return log('Paste your GitHub token first (step 1).', 'err');
+    if (!state.orderLoaded) await loadOrder();
+    if (!state.orderLoaded) return log('Could not read src/content/order.json — nothing was changed.', 'err');
+    const files = state.files[kind];
+    const j = i + dir;
+    if (j < 0 || j >= files.length) return;
+    [files[i], files[j]] = [files[j], files[i]];
+    render(kind);
+    log('Saving order…');
+    try {
+      await saveOrder(kind);
+      log('Order saved — it lands once the rebuild finishes.', 'ok');
+    } catch (e) {
+      [files[i], files[j]] = [files[j], files[i]];
+      render(kind);
+      log(e.message, 'err');
+    }
+  }
+
+  /* order.json carries both lists: the one on screen is rewritten from the
+     files we actually see, the other keeps what it already had. */
+  async function saveOrder(kind) {
+    const body = { projects: state.order.projects || [], videos: state.order.videos || [] };
+    ['projects', 'videos'].forEach((k) => {
+      if (state.loaded[k]) body[k] = state.files[k].map((f) => f.name);
+    });
+    state.order = body;
+    await commit('src/content/order.json', JSON.stringify(body, null, 2) + '\n',
+      'content: reorder ' + kind, true);
+  }
+
+  async function loadOrder() {
+    try {
+      const data = await api('src/content/order.json');
+      state.order = JSON.parse(unb64(data.content));
+      state.orderLoaded = true;
+    } catch (e) { /* no order.json yet — the first move creates it */ }
+  }
+
+  async function startEdit(kind, file) {
+    try {
+      log('Loading ' + file.name + '…');
+      const data = await api(file.path);
+      const text = unb64(data.content);
+      const pairs = parseFront(text);
+      const head = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/.exec(text);
+      const form = $('#' + stem(kind) + '-form');
+      const fill = (name, value) => { if (form.elements[name]) form.elements[name].value = value; };
+      if (kind === 'projects') {
+        fill('name', frontValue(pairs, 'name'));
+        fill('url', frontValue(pairs, 'url'));
+        fill('description', frontValue(pairs, 'description'));
+        fill('iconUrl', frontValue(pairs, 'iconUrl'));
+      } else if (kind === 'links') {
+        fill('name', frontValue(pairs, 'name'));
+        fill('url', frontValue(pairs, 'url'));
+        fill('icon', frontValue(pairs, 'icon'));
+        form.elements.solid.checked = frontValue(pairs, 'solid') === 'true';
+        form.elements.brand.value = file.path;
+        showLinkIcon();
+      } else {
+        fill('title', frontValue(pairs, 'title'));
+        const id = frontValue(pairs, 'videoId');
+        fill('videoId', id);
+        if (/^[\w-]{11}$/.test(id)) {
+          const img = $('#thumb');
+          img.src = 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg';
+          img.style.display = 'block';
         }
-      `;
-      window.CMS.registerCmsStyles(css, { raw: true });
-      console.log('Dark Mode styles registered via decap-cms-init.');
-    });
-  </script>
+      }
+      state.editing[kind] = { path: file.path, pairs, tail: head ? text.slice(head[0].length) : text };
+      $('#' + stem(kind) + '-submit').textContent = 'Save changes';
+      const note = $('#' + stem(kind) + '-editing');
+      note.textContent = 'Editing ' + file.name + ' — the file keeps its name, Cancel resets the form.';
+      note.hidden = false;
+      $('#' + stem(kind) + '-cancel').hidden = false;
+      log('Editing ' + file.name + '.', 'ok');
+      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (e) {
+      log(e.message, 'err');
+    }
+  }
 
+  function endEdit(kind) {
+    state.editing[kind] = null;
+    $('#' + stem(kind) + '-submit').textContent = SUBMIT_LABEL[kind];
+    $('#' + stem(kind) + '-editing').hidden = true;
+    $('#' + stem(kind) + '-cancel').hidden = true;
+  }
+
+  ['projects', 'videos', 'links'].forEach((kind) => {
+    $('#' + stem(kind) + '-cancel').addEventListener('click', (ev) => {
+      ev.preventDefault();
+      $('#' + stem(kind) + '-form').reset();
+      $('#thumb').style.display = 'none';
+      if (kind === 'links') showLinkIcon();
+      endEdit(kind);
+      log('Edit cancelled.', 'ok');
+    });
+  });
+
+  let listsStarted = false;
+  async function initLists() {
+    if (listsStarted) return;
+    listsStarted = true;
+    try { await loadOrder(); } catch (e) { /* refresh still tells us what exists */ }
+    await Promise.all([refresh('projects'), refresh('videos'), refresh('links')]);
+  }
+
+  /* ── HTML pages ──────────────────────────────────────────────────── */
+
+  /* Paths the site already owns — a page must not land on top of them. */
+  const RESERVED = ['admin', 'projects', 'foreignscs', 'pxgames', 'uploads', 'fonts', '_astro'];
+
+  $('#page-form').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const fd = new FormData(ev.target);
+    const dir = String(fd.get('path') || '').trim().replace(/^\/+|\/+$/g, '');
+    const file = fd.get('file');
+    if (!dir) return log('Type the path, e.g. ai → /ai/', 'err');
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(dir)) {
+      return log('Path must start with a letter or digit and use only a-z, 0-9 and -.', 'err');
+    }
+    if (RESERVED.indexOf(dir) !== -1) return log('/' + dir + '/ belongs to the site already — pick another path.', 'err');
+    if (!file || !file.name) return log('Pick a file first.', 'err');
+    if (file.size > 1024 * 1024) return log('That file is over 1 MB — GitHub refuses it through this API.', 'err');
+    run(ev.target, async () => ({
+      path: 'public/' + dir + '/' + file.name,
+      label: '/' + dir + '/' + file.name,
+      text: await file.text(),
+      message: 'content: add page /' + dir + '/' + file.name,
+      update: true
+    }));
+  });
+
+  /* ── settings ────────────────────────────────────────────────────── */
+
+  const SETTINGS_PATH = 'src/content/site.json';
+  /* The three pictures are different files on purpose — the knowledge panel
+     wants a photo of the person, the social preview and the logo want the
+     brand. */
+  const SETTINGS_IMAGES = ['profileImage', 'websiteImage', 'logo'];
+  const SITE = 'https://codes.peditx.ir';
+
+  /* A path on the site or a full http(s) URL. Protocol-relative (//host) is
+     turned away on purpose: an image must name its host. */
+  function checkImage(v) {
+    return /^https?:\/\//i.test(v) || /^\/(?!\/)/.test(v);
+  }
+
+  /* The previews are always absolute — a bare path would resolve against the
+     panel's own origin, which is not where the file lives. */
+  function showImages() {
+    const form = $('#settings-form');
+    SETTINGS_IMAGES.forEach((f) => {
+      const img = $('#pv-' + f);
+      const v = form.elements[f].value.trim();
+      img.style.display = checkImage(v) ? 'block' : 'none';
+      if (checkImage(v)) img.src = /^https?:\/\//i.test(v) ? v : SITE + v;
+    });
+  }
+
+  async function loadSettings() {
+    try {
+      const data = await api(SETTINGS_PATH);
+      const s = JSON.parse(unb64(data.content));
+      const form = $('#settings-form');
+      SETTINGS_IMAGES.forEach((f) => { form.elements[f].value = s[f] || ''; });
+      form.elements.description.value = s.description || '';
+      showImages();
+    } catch (e) { /* no site.json yet — the placeholders are what ships */ }
+  }
+
+  $('#settings-form').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const form = ev.target;
+    const fd = new FormData(form);
+    for (let i = 0; i < SETTINGS_IMAGES.length; i++) {
+      const f = SETTINGS_IMAGES[i];
+      if (!checkImage(String(fd.get(f) || '').trim())) {
+        return log(f + ': use a path starting with / (e.g. /peditx.jpg) or a full http(s) URL.', 'err');
+      }
+    }
+    const description = String(fd.get('description') || '').trim();
+    if (!description) return log('Description cannot be empty.', 'err');
+
+    run(form, async () => {
+      /* Keys the panel does not know about survive, same as an edit. */
+      let settings = {};
+      try { settings = JSON.parse(unb64((await api(SETTINGS_PATH)).content)); } catch (e) { /* first save */ }
+      SETTINGS_IMAGES.forEach((f) => { settings[f] = String(fd.get(f)).trim(); });
+      settings.description = description;
+      return {
+        path: SETTINGS_PATH,
+        label: SETTINGS_PATH,
+        text: JSON.stringify(settings, null, 2) + '\n',
+        message: 'content: update the site settings',
+        update: true,
+        after: loadSettings
+      };
+    });
+  });
+
+  $('#settings-form').addEventListener('input', showImages);
+
+  /* ── social links ────────────────────────────────────────────────── */
+
+  /* The logo picker is built from the marks the site already uses, so the
+     same SVG is reused instead of being typed in again. Nothing is stored
+     here: each pick re-reads the file it came from. */
+  function fillBrands() {
+    const sel = $('#link-form').brand;
+    const keep = sel.value;
+    sel.textContent = '';
+    sel.append(new Option('— pick a logo —', ''));
+    state.files.links.forEach((f) => {
+      sel.append(new Option(f.name.replace(/\.md$/i, '').replace(/links?$/i, ''), f.path));
+    });
+    sel.value = keep;
+  }
+
+  /* The preview mirrors how the site draws a mark: solid fills, outline
+     strokes. */
+  function showLinkIcon() {
+    const form = $('#link-form');
+    const icon = form.elements.icon.value.trim();
+    const solid = form.elements.solid.checked;
+    $('#link-preview').innerHTML = !icon ? '' :
+      '<svg viewBox="0 0 24 24" width="32" height="32" fill="' + (solid ? 'currentColor' : 'none')
+      + '" stroke="' + (solid ? 'none' : 'currentColor') + '" stroke-width="' + (solid ? '0' : '2')
+      + '">' + icon + '</svg>';
+  }
+
+  $('#link-form').brand.addEventListener('change', async (ev) => {
+    const path = ev.target.value;
+    if (!path) return;
+    const form = $('#link-form');
+    try {
+      log('Loading the logo from ' + path + '…');
+      const pairs = parseFront(unb64((await api(path)).content));
+      form.elements.icon.value = frontValue(pairs, 'icon');
+      form.elements.solid.checked = frontValue(pairs, 'solid') === 'true';
+      if (!form.elements.name.value.trim()) form.elements.name.value = frontValue(pairs, 'name');
+      showLinkIcon();
+      log('Logo filled from ' + path + '.', 'ok');
+    } catch (e) {
+      log(e.message, 'err');
+    }
+  });
+
+  $('#link-form').elements.icon.addEventListener('input', showLinkIcon);
+  $('#link-form').elements.solid.addEventListener('change', showLinkIcon);
+
+  $('#link-form').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const fd = new FormData(ev.target);
+    const name = String(fd.get('name') || '').trim();
+    const url = String(fd.get('url') || '').trim();
+    const icon = String(fd.get('icon') || '').trim();
+    if (!checkName(name)) return log('Name cannot be empty or contain / or \\.', 'err');
+    let u; try { u = new URL(url); } catch { return log('URL is not valid.', 'err'); }
+    if (!/^https?:$/.test(u.protocol)) return log('URL must be http(s).', 'err');
+    if (!icon) return log('Pick a logo, or paste the SVG into the Icon field.', 'err');
+
+    const values = { name: name, url: url, icon: icon, solid: fd.get('solid') === 'on' };
+    const edit = state.editing.links;
+    run(ev.target, () => ({
+      path: edit ? edit.path : DIRS.links + '/' + name.replace(/\s+/g, '') + 'Link.md',
+      label: edit ? edit.path : DIRS.links + '/' + name.replace(/\s+/g, '') + 'Link.md',
+      text: applyFront(edit ? edit.pairs : [], values, edit && edit.tail),
+      message: (edit ? 'content: update link ' : 'content: add link ') + name,
+      update: !!edit,
+      after: () => { endEdit('links'); refresh('links'); }
+    }));
+  });
+
+  /* token: kept in this browser only */
+  const tokenInput = $('#token');
+  tokenInput.value = localStorage.getItem(TOKEN_KEY) || '';
+  tokenInput.addEventListener('input', () => localStorage.setItem(TOKEN_KEY, tokenInput.value.trim()));
+  $('#forget').addEventListener('click', (ev) => {
+    ev.preventDefault();
+    localStorage.removeItem(TOKEN_KEY);
+    tokenInput.value = '';
+    log('Token cleared.', 'ok');
+  });
+
+  $('#repo-label').textContent = REPO;
+
+  /* ── sign in ──────────────────────────────────────────────────────── */
+
+  /* Only the hash lives in the page, never the password itself. This still
+     runs client-side, so it keeps visitors out — it does not keep out
+     someone reading the source. Cloudflare Access is the real lock. */
+  const AUTH_KEY = 'peditx-admin-auth';
+  const AUTH_USER = 'peditx';
+  const AUTH_HASH = '54aea13e1cda803f6ce475881f6bc2b0e1f8bf353925a356c895aa9d434ef53f';
+
+  async function sha256hex(text) {
+    if (!window.crypto || !crypto.subtle) throw new Error('Sign-in needs https:// — browsers hide crypto on plain http.');
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  function openPanel() {
+    const gate = $('#gate');
+    if (gate) gate.remove();
+    $('#app').hidden = false;
+    initLists();
+    loadSettings();
+  }
+
+  $('#login-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const fd = new FormData(ev.target);
+    try {
+      const user = String(fd.get('user') || '');
+      const pass = String(fd.get('pass') || '');
+      if (user !== AUTH_USER || (await sha256hex(pass)) !== AUTH_HASH) {
+        return log('Wrong username or password.', 'err');
+      }
+      localStorage.setItem(AUTH_KEY, '1');
+      ev.target.reset();
+      openPanel();
+      log('Signed in.', 'ok');
+    } catch (e) {
+      log(e.message, 'err');
+    }
+  });
+
+  $('#signout').addEventListener('click', (ev) => {
+    ev.preventDefault();
+    localStorage.removeItem(AUTH_KEY);
+    location.reload();
+  });
+
+  try {
+    if (localStorage.getItem(AUTH_KEY) === '1') openPanel();
+  } catch (e) { /* private mode: sign in again after a reload */ }
+
+  /* ── self-check: open /admin/?selftest ───────────────────────────── */
+  if (location.search.indexOf('selftest') !== -1) {
+    const projectFileFixture = '---\nslug: "OpenWrt-WARP+"\nname: "Old"\ndescription: "B"\nurl: "https://x"\n---\nbody\n';
+    const checks = [
+      ['yaml quotes', yaml('He said "hi"') === '"He said \\"hi\\""'],
+      ['yaml backslash', yaml('a\\b') === '"a\\\\b"'],
+      ['yaml newline', yaml('one\ntwo') === '"one two"'],
+      ['yaml persian', yaml('پیام') === '"پیام"'],
+      ['name rejects slash', !checkName('foo/bar')],
+      ['name rejects blank', !checkName('   ')],
+      ['name ok', checkName('OpenWrt-WARP+')],
+      ['b64 utf8', atob(b64('پیام')) === String.fromCharCode(...new TextEncoder().encode('پیام'))],
+      ['b64 ascii', b64('abc') === 'YWJj'],
+      ['video id ok', /^[\w-]{11}$/.test('b2C4dGTV-wg')],
+      ['video id short', !/^[\w-]{11}$/.test('short')],
+      ['project yaml', applyFront([], { name: 'A', description: 'B', url: 'https://x.ir' })
+        === '---\nname: "A"\ndescription: "B"\nurl: "https://x.ir"\n---\n'],
+      ['project with icon', applyFront([], { name: 'A', description: 'B', url: 'https://x', iconUrl: 'https://i' })
+        === '---\nname: "A"\ndescription: "B"\nurl: "https://x"\niconUrl: "https://i"\n---\n'],
+      ['video yaml', applyFront([], { title: 'T', videoId: 'b2C4dGTV-wg', thumbnailUrl: 'https://i.ytimg.com/vi/b2C4dGTV-wg/hqdefault.jpg' })
+        === '---\ntitle: "T"\nvideoId: "b2C4dGTV-wg"\nthumbnailUrl: "https://i.ytimg.com/vi/b2C4dGTV-wg/hqdefault.jpg"\n---\n'],
+      ['parse keeps order', JSON.stringify(parseFront(projectFileFixture).map((p) => p[0]))
+        === JSON.stringify(['slug', 'name', 'description', 'url'])],
+      ['edit changes one key', applyFront(parseFront(projectFileFixture), { name: 'New', description: 'B', url: 'https://x' })
+        === '---\nslug: "OpenWrt-WARP+"\nname: "New"\ndescription: "B"\nurl: "https://x"\n---\n'],
+      ['edit keeps the body', applyFront(parseFront(projectFileFixture), { name: 'New', description: 'B', url: 'https://x' }, 'body text\n')
+        === '---\nslug: "OpenWrt-WARP+"\nname: "New"\ndescription: "B"\nurl: "https://x"\n---\nbody text\n'],
+      ['edit drops a key with null', applyFront([['a', '"1"'], ['b', '"2"']], { a: null, b: '2' })
+        === '---\nb: "2"\n---\n'],
+      ['edit leaves unknown keys alone', applyFront([['slug', '"x"']], { name: 'N' })
+        === '---\nslug: "x"\nname: "N"\n---\n'],
+      ['edit absent key is not added', !applyFront([], {}).includes('name')],
+      ['frontValue unquotes', frontValue([['name', '"He said \\"hi\\""']], 'name') === 'He said "hi"'],
+      ['frontValue single quotes', frontValue([['name', "'it''s'"]], 'name') === "it's"],
+      ['frontValue missing', frontValue([], 'name') === ''],
+      ['enc keeps name intact', enc('src/content/projects/OpenWrt-WARP+ Project.md')
+        === 'src/content/projects/OpenWrt-WARP%2B%20Project.md'],
+      ['enc is reversible', decodeURIComponent(enc('a b/c.md')) === 'a b/c.md'],
+      ['page path', enc('public/ai/index.html') === 'public/ai/index.html'],
+      ['page path encodes spaces', enc('public/ai/my page.html') === 'public/ai/my%20page.html'],
+      ['admin is reserved', RESERVED.indexOf('admin') !== -1],
+      ['plain dir allowed', RESERVED.indexOf('ai') === -1],
+      ['image accepts path', checkImage('/PeDitX.png')],
+      ['image accepts url', checkImage('https://codes.peditx.ir/PeDitX.png')],
+      ['image rejects bare name', !checkImage('PeDitX.png')],
+      ['image rejects protocol-relative', !checkImage('//evil.com/x.png')],
+      ['bool stays unquoted', applyFront([], { solid: true }) === '---\nsolid: true\n---\n'],
+      ['bool false stays unquoted', applyFront([], { solid: false }) === '---\nsolid: false\n---\n'],
+      ['bool-looking string is quoted', applyFront([], { name: 'true' }) === '---\nname: "true"\n---\n'],
+      ['link file name', DIRS.links + '/' + 'TikTok'.replace(/\s+/g, '') + 'Link.md' === 'src/content/links/TikTokLink.md']
+    ];
+    const report = (extra) => {
+      const all = checks.concat(extra);
+      const failed = all.filter((c) => !c[1]).map((c) => '✗ ' + c[0]);
+      log(failed.length ? failed.join('\n') : 'PASS — ' + all.length + '/' + all.length + ' checks', failed.length ? 'err' : 'ok');
+    };
+    sha256hex('PeD@20132013..')
+      .then((h) => report([['password hash', h === AUTH_HASH], ['username', AUTH_USER === 'peditx']]))
+      .catch(() => report([['password hash', false]]));
+  }
+})();
+</script>
 </body>
 </html>

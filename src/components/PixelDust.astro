@@ -1,0 +1,385 @@
+---
+/* Pixel dust.
+   The scattered square confetti that sits behind the whole page: small cells
+   at varying opacity, packed tighter toward the edges and corners so the
+   middle stays quiet and text stays readable.
+
+   Everything is drawn on one canvas with transform-free fills, animated by
+   redrawing a small set of twinkling cells. It is decoration only — removing
+   this component leaves the page fully intact. */
+---
+
+<canvas class="pixel-dust" data-pixel-dust aria-hidden="true"></canvas>
+
+<style>
+  .pixel-dust {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+</style>
+
+<script>
+  const canvas = document.querySelector<HTMLCanvasElement>('[data-pixel-dust]');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+
+    /* One dust cell is this many CSS pixels square. Large enough to read as a
+       deliberate block rather than noise. */
+    const CELL = 9;
+
+    let dpr = 1;
+    let w = 0;
+    let h = 0;
+    let grains: {
+      x: number;
+      y: number;
+      s: number;
+      a: number;
+      vx: number;
+      vy: number;
+      hot: boolean;
+      band: number;
+      /* Flare start time in ms, or -1 when the grain is idle. */
+      ft: number;
+      /* How long this particular flare lasts, so bursts are not uniform. */
+      fd: number;
+      /* Peak size bonus, in cells, for the flare. */
+      fb: number;
+    }[] = [];
+
+    /* The field is sliced into vertical bands like a spectrum analyser. Each
+       band bobs at its own rate, so the whole thing reads as a level meter
+       rather than a uniform blink. */
+    /* An 8-bit X, taken from the X in PeDitX. Rows are bit masks, so a 1 is a
+       lit cell. Drawn whenever a grain bursts. */
+    const X_SPRITE = [0b10001, 0b01010, 0b00100, 0b01010, 0b10001];
+    const X_ROWS = X_SPRITE.length;
+    const X_COLS = 5;
+
+    /* Draw the sprite centred on cx,cy with each cell `cell` px wide. */
+    function drawX(cx: number, cy: number, cell: number) {
+      const wdt = X_COLS * cell;
+      const hgt = X_ROWS * cell;
+      const ox = Math.round(cx - wdt / 2);
+      const oy = Math.round(cy - hgt / 2);
+      for (let r = 0; r < X_ROWS; r++) {
+        const bits = X_SPRITE[r];
+        for (let col = 0; col < X_COLS; col++) {
+          if (bits & (1 << (X_COLS - 1 - col))) {
+            ctx!.fillRect(ox + col * cell, oy + r * cell, cell, cell);
+          }
+        }
+      }
+    }
+
+    const BANDS = 24;
+    let bandPhase: number[] = [];
+    let bandRate: number[] = [];
+
+    /* #rrggbb (or bare hex) from a custom property, as an rgb triple. */
+    function rgbOf(varName: string, fallback: number[]) {
+      const v = getComputedStyle(document.documentElement)
+        .getPropertyValue(varName)
+        .trim()
+        .replace('#', '');
+      if (v.length < 6) return fallback;
+      const n = parseInt(v.slice(0, 6), 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    }
+
+    let accentBrand = rgbOf('--t-brand', [140, 160, 190]);
+
+    function accent() {
+      /* Falls back to the same neutral the themes use for hairlines. */
+      const v = getComputedStyle(document.documentElement)
+        .getPropertyValue('--t-border-strong')
+        .trim();
+      const s = v.replace('#', '');
+      if (s.length < 6) return [120, 130, 150];
+      const n = parseInt(s.slice(0, 6), 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    }
+
+    /* How likely a cell holds dust, from its position in the viewport.
+       Measured as a Chebyshev distance from centre, so the thinning is
+       square-on and lines up with the content column: the closer to the
+       middle, the sparser, down to roughly a sixteenth of edge density. */
+    function densityAt(nx: number, ny: number) {
+      const dx = Math.abs(nx - 0.5) * 2; /* 0 centre, 1 edge */
+      const dy = Math.abs(ny - 0.5) * 2;
+      /* Cubed, not squared: a square curve leaves the middle half as dense as
+         the edge, which still reads as clutter behind the content column. */
+      const d = Math.max(dx, dy);
+      return 0.02 + d * d * d * 0.98;
+    }
+
+    function build() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas!.width = Math.round(w * dpr);
+      canvas!.height = Math.round(h * dpr);
+
+      const cols = Math.ceil(w / CELL);
+      const rows = Math.ceil(h / CELL);
+      grains = [];
+      /* One circle at the middle of the viewport, sized off the short edge so
+         it stays circular on any screen. It holds the headline, so the dust
+         is capped there no matter what the density ramp says. */
+      /* Sized off the short edge so it stays circular at any aspect ratio.
+         Generous enough to clear the headline and the stats bar, not just the
+         kicker. */
+      keepR = Math.min(w, h) * 0.46;
+      /* Publish the quiet circle so the wordmark's light knows where the
+         background permits it: that light is only allowed inside this ring. */
+      document.documentElement.style.setProperty('--bg-circle-r', `${keepR}px`);
+      const keepMax = 10;
+      let keepIn = 0;
+      bandPhase = [];
+      bandRate = [];
+      for (let i = 0; i < BANDS; i++) {
+        /* Spread the starting phases so neighbouring bars are never in step. */
+        bandPhase.push((i / BANDS) * Math.PI * 2 + Math.random() * 0.9);
+        /* Hz-ish: between roughly 0.5 and 1.6 cycles a second. */
+        bandRate.push(0.5 + Math.random() * 1.1);
+      }
+
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          /* Nudge each grain off the exact lattice so it never reads as a
+             regular checkerboard. */
+          const jitter = CELL * 0.34;
+          const px = x * CELL + (Math.random() - 0.5) * jitter;
+          const py = y * CELL + (Math.random() - 0.5) * jitter;
+          const nx = px / w;
+          const ny = py / h;
+
+          /* Vertical bias too: a little heavier top and bottom. */
+          const chance = densityAt(nx, ny) * 0.07;
+
+          if (Math.random() > chance) continue;
+
+          /* Inside the circle, only the first keepMax grains are admitted;
+             the rest are dropped rather than merely faded, so the count is
+             a real ceiling and not an average. */
+          if (Math.hypot(px - w / 2, py - h / 2) < keepR) {
+            if (keepIn >= keepMax) continue;
+            keepIn++;
+          }
+
+          const size = CELL * (Math.random() < 0.16 ? 2 : 1);
+          /* Each grain drifts on its own heading and speed, which is what
+             makes the field feel alive rather than blinking in place. */
+          const heading = Math.random() * Math.PI * 2;
+          /* Pixels per second. Fast enough to read as a live swarm rather
+             than a slow haze — closer to sprites on a title screen. */
+          const speed = 38 + Math.random() * 78;
+
+          grains.push({
+            x: px,
+            y: py,
+            s: size,
+            /* Base opacity. Kept low so body copy never fights it. */
+            a: 0.1 + Math.random() * 0.3,
+            vx: Math.cos(heading) * speed,
+            vy: Math.sin(heading) * speed,
+            /* Roughly a quarter of the field carries the theme's accent, so
+               switching themes visibly recolours the dust rather than just
+               nudging it darker or lighter. */
+            hot: Math.random() < 0.26,
+            band: Math.min(BANDS - 1, Math.floor((px / (w || 1)) * BANDS)),
+            ft: -1,
+            fd: 0,
+            fb: 0,
+          });
+        }
+      }
+    }
+
+    let rgb = accent();
+
+    /* Last frame timestamp, for dt-based drift so motion is frame-rate
+       independent — a 60Hz screen and a 144Hz screen move at the same speed. */
+    let last = 0;
+
+    function draw(t: number) {
+      if (!ctx) return;
+
+      const dt = last ? Math.min((t - last) / 1000, 0.05) : 0;
+      last = t;
+
+      /* Advance every grain and wrap it around the viewport, so the field
+         never empties out along one edge. */
+      if (dt > 0) {
+        /* Chance per second that any one grain bursts. Aimed at roughly five
+           or six X's alive at once across the whole field — enough to notice
+           without the field reading as busy. */
+        const CHANCE = 0.016;
+
+        for (const g of grains) {
+          g.x += g.vx * dt;
+          g.y += g.vy * dt;
+
+          /* A grain that drifts into the clear circle is pushed out along the
+             radius and turned outward, so the ceiling holds for as long as the
+             page is open and nothing flickers in the headline. */
+          if (keepR) {
+            const ddx = g.x - w / 2;
+            const ddy = g.y - h / 2;
+            const dist = Math.hypot(ddx, ddy);
+            if (dist < keepR) {
+              const k = keepR / (dist || 1);
+              g.x = w / 2 + ddx * k;
+              g.y = h / 2 + ddy * k;
+              g.vx = Math.cos(Math.atan2(ddy, ddx)) * Math.hypot(g.vx, g.vy);
+              g.vy = Math.sin(Math.atan2(ddy, ddx)) * Math.hypot(g.vx, g.vy);
+            }
+          }
+          if (g.x < -g.s) g.x = w + g.s;
+          else if (g.x > w + g.s) g.x = -g.s;
+          if (g.y < -g.s) g.y = h + g.s;
+          else if (g.y > h + g.s) g.y = -g.s;
+
+          if (!reduced && g.ft < 0 && Math.random() < CHANCE * dt) {
+            g.ft = t;
+            g.fd = 380 + Math.random() * 460;
+            g.fb = 3 + Math.random() * 6;
+          }
+          /* Retire a flare that has run its course. */
+          if (g.ft >= 0 && t - g.ft > g.fd) g.ft = -1;
+        }
+      }
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      const base = `rgb(${rgb[0]} ${rgb[1]} ${rgb[2]})`;
+      const hotBase = `rgb(${accentBrand[0]} ${accentBrand[1]} ${accentBrand[2]})`;
+      ctx.fillStyle = base;
+
+      const [ar, ag, ab] = rgb;
+
+      /* Per-band level, 0..1, then snapped to a few steps. The quantising is
+         what makes it read as an 8-bit level meter instead of smooth bars. */
+      const STEPS = 4;
+      const levels: number[] = [];
+      for (let i = 0; i < BANDS; i++) {
+        if (reduced) {
+          levels.push(0.7);
+        } else {
+          /* Two sines a band apart, so each bar has a little internal life
+             instead of a perfect sine sweep. */
+          const v =
+            0.5 + 0.5 * Math.sin(t * 0.001 * bandRate[i] + bandPhase[i]) * 0.75 +
+            0.18 * Math.sin(t * 0.0023 * bandRate[i] + bandPhase[i] * 1.7);
+          const clamped = Math.min(1, Math.max(0, v));
+          levels.push(Math.round(clamped * STEPS) / STEPS);
+        }
+      }
+
+      for (const g of grains) {
+        const lv = levels[g.band] ?? 0.4;
+        let alpha = reduced ? Math.min(0.85, g.a * 2.2) : Math.max(g.a * 0.14, g.a * 0.35 + lv * 0.72);
+        /* Grow the cell with the band level, so the bars visibly rise. */
+        let size = g.s + Math.round(lv * (g.s > CELL ? 2 : 3));
+        let hot = g.hot;
+
+        /* A burst: the cell swells quickly and burns out as it goes, so it
+           reads as a spark rather than a permanently bigger pixel. */
+        if (g.ft >= 0) {
+          const k = (t - g.ft) / g.fd; /* 0..1 across the burst */
+          if (k >= 0 && k <= 1) {
+            /* Fast attack, slower decay. */
+            const env = k < 0.22 ? k / 0.22 : 1 - (k - 0.22) / 0.78;
+            size = g.s + Math.round(g.fb * env * 3);
+            alpha = Math.min(0.95, alpha + env * 0.55);
+            /* Bursts burn in the accent colour, then toward white at the peak. */
+            hot = true;
+          }
+        }
+
+
+        ctx.fillStyle = hot ? hotBase : base;
+        ctx.globalAlpha = alpha;
+
+        if (g.ft >= 0) {
+          /* Bursts are the X from PeDitX, not a bigger square. */
+          drawX(g.x + g.s / 2, g.y + g.s / 2, Math.max(1, size / 3));
+        } else {
+          ctx.fillRect(Math.round(g.x), Math.round(g.y), size, size);
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    /* Cursor position in CSS pixels, and whether it is over the window at
+       all. Dust within reach brightens and shifts toward the accent. */
+    const REACH = 210; /* CSS pixels of influence */
+
+    let raf = 0;
+    function loop(t: number) {
+      draw(t);
+      raf = requestAnimationFrame(loop);
+    }
+
+    /* Re-read the palette without touching grain positions. */
+    function refreshColors() {
+      rgb = accent();
+      accentBrand = rgbOf('--t-brand', [140, 160, 190]);
+      if (reduced) draw(0);
+    }
+
+    /* Radius of the clear circle at the centre. Hoisted out of start() because
+       the drift loop needs it too: the cap has to hold after grains move, not
+       only at the moment they are made. */
+    let keepR = 0;
+
+    function start() {
+      build();
+      refreshColors();
+      if (reduced) {
+        /* Draw once, statically. */
+        draw(0);
+        return;
+      }
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(loop);
+    }
+
+    /* Pause when the tab is hidden so an idle background costs nothing. */
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        cancelAnimationFrame(raf);
+      } else if (!reduced) {
+        raf = requestAnimationFrame(loop);
+      }
+    });
+
+    /* Watch the theme attribute directly. Listening for clicks instead would
+       miss every path that is not a click — pressing T and then Enter in the
+       switcher, for one — and the dust would keep the old colours. A
+       MutationObserver catches all of them. */
+    new MutationObserver(refreshColors).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+
+    let resizeTimer = 0;
+    window.addEventListener(
+      'resize',
+      () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(start, 180);
+      },
+      { passive: true }
+    );
+
+
+    start();
+  }
+</script>

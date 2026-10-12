@@ -1,0 +1,279 @@
+---
+/* Pixel wordmark.
+   The mark is the owner's own ASCII lettering, not system type: it is drawn
+   into an offscreen buffer with a monospace face, downsampled onto a grid,
+   and repainted cell by cell from the theme's five --t-field-* stops.
+
+   Downsampling rather than mapping one character to one block is what keeps
+   the letterforms. `(`, `_` and `/` sit at different heights inside their own
+   cell, so collapsing them into solid squares would fuse everything into
+   bars. Sampling the rendered glyphs preserves the shapes.
+
+   Cells near the cursor brighten. The real <h1> stays in the document for
+   screen readers and search engines; the canvas is aria-hidden decoration. */
+const ART = [
+  '______      _____   _      _    _     _       ',
+  '(_____ \\    (_____ \\ (_)_   \\ \\  / /   /   ',
+  ' _____) )___ _   \\ \\ _| |_  \\ \\/ /    ',
+  '|  ____/ _  ) |   | | |  _)  )  (    ',
+  '| |   ( (/ /| |/ /| | | / /\\ \\  ',
+  '|_|    \\____)_____/ |_|\\___)_/  \\_\\',
+];
+---
+
+<div class="pixel-wordmark" data-pixel-wordmark>
+  <canvas class="pixel-wordmark__canvas" aria-hidden="true"></canvas>
+</div>
+
+<style>
+  .pixel-wordmark {
+    position: relative;
+    width: 100%;
+    /* Ratio of the lettering grid; recalculated once the mask is measured. */
+    aspect-ratio: 74 / 24;
+  }
+
+  .pixel-wordmark__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    /* Cells must stay sharp; smoothing blurs them back into type. */
+    image-rendering: pixelated;
+  }
+</style>
+
+<script>
+  /* The real mark: heavy italic sans, not the ASCII stand-in. Sampled from
+     type so the bowl of the P, the tittle on the i and the ball terminals
+     on the X all survive. */
+  const TEXT = 'PeDitX';
+  const LOGO_A = '#9b8cf0'; /* periwinkle, left end of the gradient */
+  const LOGO_B = '#f4a6c6'; /* bubblegum, right end */
+  const ART_ROWS = 1;
+  const ART_COLS = TEXT.length;
+
+  const GAP = 0.14; /* fraction of a cell left empty, so the grid reads */
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fine = matchMedia('(pointer: fine)').matches;
+
+  const host = document.querySelector<HTMLElement>('[data-pixel-wordmark]');
+  const canvas = host?.querySelector<HTMLCanvasElement>('canvas');
+
+  /* Magneto must be resident before the mask is read back, otherwise the
+     first sample is taken in the fallback face and never re-runs. */
+  if (typeof document !== 'undefined' && document.fonts?.load) {
+    document.fonts.load('700 120px "Magneto"', 'PeDitX').then(() => window.dispatchEvent(new Event('peditx:font-ready')));
+  }
+
+  if (host && canvas) {
+    const ctx = canvas.getContext('2d');
+
+    /* Offscreen: the lettering at readable size, then read back coarse. */
+    const buf = document.createElement('canvas');
+    const bctx = buf.getContext('2d', { willReadFrequently: true });
+
+    let cells: { x: number; y: number; f: number }[] = [];
+    let COLS = 1;
+    let ROWS = 1;
+    let cell = 0; /* one cell, in device pixels */
+    let w = 0;
+    let h = 0;
+
+    function themeColor(name: string, fallback: string) {
+      const v = getComputedStyle(document.documentElement)
+        .getPropertyValue(name)
+        .trim();
+      return v || fallback;
+    }
+
+    const STOPS = [0, 0.26316, 0.36842, 0.57895, 0.73684, 1];
+    const VARS = [
+      '--t-field-crest',
+      '--t-field-hover',
+      '--t-field-lit',
+      '--t-field-mid',
+      '--t-field-dim',
+    ];
+
+    function hexToRgb(hex: string) {
+      const s = hex.replace('#', '').trim();
+      if (s.length < 6) return { r: 128, g: 128, b: 128 };
+      const n = parseInt(s.slice(0, 6), 16);
+      return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+    }
+
+    function mix(a: number, b: number, t: number) {
+      return Math.round(a + (b - a) * t);
+    }
+
+    /* Colour is the theme's. The face is Magneto and that is what carries the
+       identity; the gradient was a guess at brand colour and did not belong
+       here, so the ramp stays on the five --t-field-* stops. */
+    function rampAt(f: number) {
+      const vars = VARS.map((v) => hexToRgb(themeColor(v, '#888888')));
+      let seg = 0;
+      while (seg < VARS.length - 2 && f >= STOPS[seg + 1]) seg++;
+      const span = STOPS[seg + 1] - STOPS[seg] || 1;
+      const t = Math.min(1, Math.max(0, (f - STOPS[seg]) / span));
+      const a = vars[seg];
+      const b = vars[seg + 1] ?? a;
+      return { r: mix(a.r, b.r, t), g: mix(a.g, b.g, t), b: mix(a.b, b.b, t) };
+    }
+
+    /* Render the wordmark at a size where glyph edges survive the read-back,
+       then average each grid cell down to one on/off sample. */
+    function sample() {
+      if (!bctx) return;
+      const F = 120;
+      /* Size the canvas BEFORE touching any context state: assigning
+         canvas.width wipes font, fillStyle and the gradient, so setting the
+         font first left everything drawn in the 10px default. Measure with a
+         throwaway context, then draw. */
+      const probe = document.createElement('canvas').getContext('2d');
+      if (probe) probe.font = `700 ${F}px "Magneto", sans-serif`;
+      const cw = (probe?.measureText(TEXT).width || F * TEXT.length * 0.6) + 16;
+      const ch = F * 1.3 + 16;
+      buf.width = Math.ceil(cw);
+      buf.height = Math.ceil(ch);
+
+      bctx.clearRect(0, 0, buf.width, buf.height);
+      bctx.font = `700 ${F}px "Magneto", sans-serif`;
+      bctx.textBaseline = 'middle';
+      /* The logo's own left-to-right gradient, read from the same two hexes
+         the brand uses, so the letters keep their periwinkle-to-pink sweep. */
+      const g = bctx.createLinearGradient(0, 0, buf.width, 0);
+      g.addColorStop(0, LOGO_A);
+      g.addColorStop(1, LOGO_B);
+      bctx.fillStyle = g;
+      bctx.fillText(TEXT, 8, buf.height / 2);
+
+      /* Enough cells across that the italic angle and the tittle stay
+         distinguishable; anything coarser decodes as noise. */
+      COLS = Math.max(1, TEXT.length * 14);
+      ROWS = Math.max(1, Math.round((COLS * buf.height) / buf.width));
+
+      const img = bctx.getImageData(0, 0, buf.width, buf.height).data;
+      const sx = buf.width / COLS;
+      const sy = buf.height / ROWS;
+      cells = [];
+
+      for (let gy = 0; gy < ROWS; gy++) {
+        for (let gx = 0; gx < COLS; gx++) {
+          /* Sample across the whole cell: the strokes are thin relative to
+             the cell, and a sampler that skips the cell edges drops them. */
+          let hit = 0;
+          for (let oy = 0; oy < 5; oy++) {
+            for (let ox = 0; ox < 5; ox++) {
+              const x = Math.min(buf.width - 1, Math.floor((gx + (ox + 0.5) / 5) * sx));
+              const y = Math.min(buf.height - 1, Math.floor((gy + (oy + 0.5) / 5) * sy));
+              if (img[(y * buf.width + x) * 4 + 3] > 70) hit++;
+            }
+          }
+          /* Horizontal ramp: the logo gradient runs left to right. */
+          if (hit >= 5) cells.push({ x: gx, y: gy, f: (gy + 0.5) / ROWS });
+        }
+      }
+    }
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      sample();
+      const rect = host!.getBoundingClientRect();
+      if (rect.width < 2) return;
+      cell = (rect.width / COLS) * dpr;
+      w = Math.round(rect.width * dpr);
+      h = Math.round((rect.width / COLS) * ROWS * dpr);
+      canvas!.style.aspectRatio = `${COLS} / ${ROWS}`;
+      canvas!.width = w;
+      canvas!.height = h;
+      paint(null);
+    }
+
+    let px: number | null = null;
+    let py: number | null = null;
+    const REACH = 9; /* radius of the lit patch, in cells */
+
+    function paint(p: { x: number; y: number } | null) {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, w, h);
+      const inner = cell * (1 - GAP);
+
+      /* The backlight moved to its own layer across the whole hero
+         (see .hero__glow): it has to reach the section's edges and read
+         behind the lettering, which the mark's own box clipped. */
+
+      for (const c of cells) {
+        const cx = c.x * cell + cell / 2;
+        const cy = c.y * cell + cell / 2;
+        const col = rampAt(c.f);
+
+        /* Block light, not a lamp. Minecraft counts distance in whole blocks
+           with Chebyshev (so the falloff forms squares, not circles) and
+           integer light levels (so it steps instead of fading). Both together
+           are what reads as Minecraft rather than as a soft radial glow. */
+        let boost = 0;
+        if (p) {
+          const px = Math.round(p.x / cell);
+          const py = Math.round(p.y / cell);
+          const ring = Math.max(Math.abs(c.x - px), Math.abs(c.y - py));
+          if (ring < REACH) boost = (REACH - ring) / REACH;
+        }
+
+        const r = mix(col.r, 255, boost * 0.85);
+        const g = mix(col.g, 255, boost * 0.85);
+        const b = mix(col.b, 255, boost * 0.85);
+        ctx.fillStyle = `rgb(${r} ${g} ${b})`;
+        ctx.fillRect(c.x * cell, c.y * cell, inner, inner);
+      }
+    }
+
+    let queued = false;
+    function queue() {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        paint(px === null ? null : { x: px, y: py ?? 0 });
+      });
+    }
+
+    if (!reduced && fine) {
+      host.addEventListener(
+        'pointermove',
+        (e) => {
+          const r = canvas!.getBoundingClientRect();
+          const dpr = canvas!.width / r.width;
+          px = (e.clientX - r.left) * dpr;
+          py = (e.clientY - r.top) * dpr;
+          queue();
+        },
+        { passive: true }
+      );
+      host.addEventListener(
+        'pointerleave',
+        () => {
+          px = null;
+          py = null;
+          queue();
+        },
+        { passive: true }
+      );
+    }
+
+    resize();
+    window.addEventListener('resize', resize, { passive: true });
+    /* Magneto finished loading: the mask is entirely different in the real
+       face, so take it again. */
+    window.addEventListener('peditx:font-ready', () => resize());
+    new ResizeObserver(() => resize()).observe(host);
+
+    /* The mask is theme independent, but the ramp stops are not, so a theme
+       change needs a repaint. Watching the attribute catches every path that
+       can change it — the picker, the T switcher, or a theme restored before
+       first paint. */
+    new MutationObserver(() => paint(null)).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+  }
+</script>
