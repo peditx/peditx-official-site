@@ -1,0 +1,20 @@
+{
+  "name": "PeDitX Admin",
+  "short_name": "PeDitX",
+  "description": "Manage the content of codes.peditx.ir",
+  "start_url": "/admin/",
+  "scope": "/admin/",
+  "display": "standalone",
+  "background_color": "#12131a",
+  "theme_color": "#171923",
+  "icons": [
+    { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Projects", "url": "/admin/#projects" },
+    { "name": "Videos", "url": "/admin/#videos" },
+    { "name": "Settings", "url": "/admin/#settings" }
+  ]
+}

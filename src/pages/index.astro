@@ -51,6 +51,10 @@ const siteUrl = 'https://codes.peditx.ir';
 const profileImage = new URL(site.profileImage, siteUrl).href;
 const websiteImage = new URL(site.websiteImage, siteUrl).href;
 const logoImage = new URL(site.logo, siteUrl).href;
+/* An encyclopedia entry about the person is one of the strongest signals a
+   knowledge panel gets — but it is not a social profile, so it must not turn
+   into a footer icon. Kept out of the links collection and merged in here. */
+const privateSameAs = ['https://en.everybodywiki.com/PeDitX'];
 
 const websiteSchema = {
   '@context': 'https://schema.org',
@@ -71,11 +75,13 @@ const personSchema = {
   alternateName: 'Pedram Alemahmoud',
   givenName: 'Pedram',
   familyName: 'Alemahmoud',
-  jobTitle: ['Developer', 'Musician', 'Actor', 'Content Creator'],
+  /* The same five titles profile.json leads with — one list, one order, so
+     the schema, the <title> tag and the hero can never drift apart. */
+  jobTitle: ['YouTuber', 'Musician', 'Developer', 'Creator', 'Actor'],
   url: 'https://codes.peditx.ir',
   description: site.description,
   image: profileImage,
-  sameAs: links.map((l) => l.data.url),
+  sameAs: [...links.map((l) => l.data.url), ...privateSameAs],
   knowsAbout: ['OpenWrt', 'Linux', 'Network engineering', 'Music production', 'Film directing'],
   birthDate: '1988-06-06',
   birthPlace: { '@type': 'Place', name: 'Ahvaz, Iran' },
@@ -101,9 +107,8 @@ const videoSchema = {
       ],
       contentUrl: `https://www.youtube.com/watch?v=${video.data.videoId}`,
       embedUrl: `https://www.youtube-nocookie.com/embed/${video.data.videoId}`,
-      /* No uploadDate: the videos collection has no date field, and a wrong
-         one is worse than none. Add `pubDate` to the schema to enable it. */
-      author: { '@type': 'Person', name: 'PeDitX' },
+      uploadDate: video.data.pubDate.toISOString(),
+      author: { '@type': 'Person', name: 'PeDitX', url: siteUrl },
     },
   })),
 };
@@ -121,14 +126,14 @@ const projectSchema = {
       description: project.data.description,
       url: project.data.url,
       codeRepository: project.data.url,
-      author: { '@type': 'Person', name: 'PeDitX' },
+      author: { '@type': 'Person', name: 'PeDitX', url: siteUrl },
     },
   })),
 };
 ---
 
 <Layout
-  title="PeDitX — Developer, Musician, Actor"
+  title={`PeDitX — ${personSchema.jobTitle.join(', ')}`}
   description={site.description}
 >
   <script type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />
@@ -145,7 +150,7 @@ const projectSchema = {
       <div class="hero__inner">
         <p class="hero__kicker hero-rise" style="--rise-index: 0">
           <span class="hero__cursor caret-blink" aria-hidden="true"></span>
-          <span id="tagline">Developer · Musician · Actor · Creator</span>
+          <span id="tagline">{personSchema.jobTitle.join(' · ')}</span>
         </p>
 
         <h1 class="hero__wordmark hero-rise" style="--rise-index: 1">

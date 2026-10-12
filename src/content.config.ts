@@ -36,6 +36,9 @@ const videos = defineCollection({
     title: z.string(),
     videoId: z.string().regex(/^[\w-]{11}$/),
     thumbnailUrl: z.string().url().optional(),
+    /* Google refuses a VideoObject without uploadDate. The date comes from
+       the video itself and is typed in once when the panel adds it. */
+    pubDate: z.coerce.date(),
   }),
 });
 

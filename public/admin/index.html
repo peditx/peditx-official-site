@@ -2,22 +2,54 @@
 <html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>PeDitX · Add content</title>
+<title>PeDitX · Admin</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<meta name="theme-color" content="#171923">
+<!-- iOS reads these two, Android reads the manifest -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PeDitX Admin">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 2rem 1rem 4rem;
+    margin: 0; padding: 2rem 1rem 5rem;
     background: #12131a; color: #d5d8e0;
     font: 15px/1.6 ui-sans-serif, system-ui, "Segoe UI", Vazirmatn, sans-serif;
   }
-  main, #gate { max-width: 40rem; margin-inline: auto; }
-  h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
-  h2 { font-size: 1rem; margin: 0 0 .75rem; }
+  main, #gate { max-width: 44rem; margin-inline: auto; }
+  h1 { font-size: 1.05rem; margin: 0; }
+  h1 span { color: #8a8f9c; font-weight: 400; }
+  h2 { font-size: 1.3rem; margin: 0 0 .4rem; }
+  h3 { font-size: .75rem; margin: 0 0 .6rem; color: #9aa0ad; text-transform: uppercase; letter-spacing: .07em; }
   .hint { color: #8a8f9c; font-size: .85rem; margin: .25rem 0 .75rem; }
-  section { border: 1px solid #262a36; border-radius: 10px; padding: 1rem; margin-top: 1.25rem; background: #171923; }
+  .card { border: 1px solid #262a36; border-radius: 10px; padding: 1.1rem; margin-top: 1.25rem; background: #171923; }
+  .tab > form, .tab > h3, .tab > ul, .tab > img, .tab > p { margin-top: 1.25rem; }
+  .tab > .hint { margin-top: .25rem; }
+
+  /* ── top bar ─────────────────────────────────────────────────── */
+  #topbar {
+    position: sticky; top: 0; z-index: 4;
+    display: flex; align-items: center; gap: .9rem; flex-wrap: wrap;
+    margin: -2rem -1rem 1.25rem; padding: .65rem 1rem;
+    background: #171923; border-bottom: 1px solid #262a36;
+  }
+  #tabs { display: flex; gap: .2rem; flex: 1; flex-wrap: wrap; }
+  #tabs button { background: transparent; color: #9aa0ad; font-weight: 500; padding: .4rem .8rem; }
+  #tabs button:hover { background: #22252f; color: #d5d8e0; }
+  #tabs button.on { background: #2c313f; color: #fff; }
+  #signout { color: #8a8f9c; font-size: .82rem; }
+
+  #credit { margin-top: 3rem; text-align: center; font-size: .82rem; color: #8a8f9c; }
+  #credit a { color: #9aa0ad; }
+  #credit a:hover { color: #d5d8e0; }
+
   label { display: block; margin-bottom: .75rem; font-size: .85rem; color: #9aa0ad; }
   input, select, textarea {
     display: block; width: 100%; margin-top: .3rem; padding: .55rem .65rem;
@@ -31,7 +63,7 @@
   .thumbs figure { margin: 0; }
   .thumbs img { display: none; width: 84px; height: 84px; object-fit: cover; border-radius: 8px; border: 1px solid #2c313f; background: #0e0f15; }
   .thumbs figcaption { font-size: .72rem; color: #8a8f9c; margin-top: .2rem; }
-  #link-preview { display: block; margin-top: .5rem; color: #e6e9f0; }
+  #link-preview { display: block; margin: .5rem 0; color: #e6e9f0; }
   button {
     padding: .55rem 1.1rem; border: 0; border-radius: 6px; cursor: pointer;
     background: #2f6a44; color: #eafff2; font: inherit; font-weight: 600;
@@ -39,26 +71,31 @@
   button:hover { background: #3a8155; }
   button[disabled] { opacity: .55; cursor: default; }
   .row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
-  #log { display: block; margin-top: 1rem; font-size: .9rem; white-space: pre-wrap; word-break: break-word; }
-  #log:empty { display: none; }
-  #log.err { color: #ff8f8f; }
-  #log.ok { color: #8ce6b0; }
   #thumb { display: none; width: 160px; height: 90px; object-fit: cover; border-radius: 6px; border: 1px solid #2c313f; margin-top: .5rem; }
   code { background: #0e0f15; padding: .1rem .3rem; border-radius: 4px; }
-  h3 { font-size: .8rem; margin: 1.1rem 0 .3rem; color: #9aa0ad; text-transform: uppercase; letter-spacing: .06em; }
   .items { list-style: none; margin: .5rem 0 0; padding: 0; }
   .items li { display: flex; align-items: center; gap: .4rem; padding: .4rem 0; border-top: 1px solid #22252f; }
   .items .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .items button { padding: .25rem .55rem; font-size: .8rem; font-weight: 500; background: #2c313f; color: inherit; }
   .items button:hover { background: #3a4152; }
   .items button:disabled { opacity: .35; }
-  .note { color: #ffd479; margin-top: .75rem; }
+  .note { color: #ffd479; }
+
+  /* the log follows you around instead of sitting under one tab */
+  #log {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; margin: 0;
+    padding: .6rem 1rem; background: #0e0f15; border-top: 1px solid #262a36;
+    font-size: .88rem; white-space: pre-wrap; word-break: break-word;
+  }
+  #log:empty { display: none; }
+  #log.err { color: #ff8f8f; }
+  #log.ok { color: #8ce6b0; }
 </style>
 </head>
 <body>
 <div id="gate">
   <h1>Sign in</h1>
-  <section>
+  <section class="card">
     <h2>PeDitX · admin</h2>
     <form id="login-form">
       <label>Username <input name="user" autocomplete="username" required></label>
@@ -72,30 +109,26 @@
   </section>
 </div>
 
+<header id="topbar" hidden>
+  <h1>PeDitX <span>Admin</span></h1>
+  <nav id="tabs">
+    <button type="button" data-tab="projects">Projects</button>
+    <button type="button" data-tab="videos">Videos</button>
+    <button type="button" data-tab="pages">Pages</button>
+    <button type="button" data-tab="links">Links</button>
+    <button type="button" data-tab="settings">Settings</button>
+  </nav>
+  <a href="#" id="signout">Sign out</a>
+</header>
+
 <main id="app" hidden>
-  <h1>Add content</h1>
-  <p class="hint">
-    Writes one markdown file into <code id="repo-label"></code> and pushes it to
-    <code>main</code> — Cloudflare Pages rebuilds the site in about a minute.
-    Nothing else is stored: no database, no server.
-    <a href="#" id="signout">Sign out</a>
-  </p>
 
-  <section>
-    <h2>1 · GitHub token</h2>
-    <label>
-      Fine-grained personal access token
-      <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…">
-    </label>
+  <section class="tab" data-tab="projects" hidden>
+    <h2>Projects</h2>
     <p class="hint">
-      GitHub → Settings → Developer settings → Personal access tokens → <b>Fine-grained tokens</b> →
-      only this repository, <b>Contents: Read and write</b>. Saved in this browser only.
-      <a href="#" id="forget">Forget it</a>
+      One markdown file per project in <code id="repo-label"></code>, pushed to
+      <code>main</code> — Cloudflare Pages rebuilds the site in about a minute.
     </p>
-  </section>
-
-  <section>
-    <h2>2 · Projects</h2>
     <form id="project-form">
       <label>Name <input name="name" required maxlength="80" placeholder="OpenWrt-Foo"></label>
       <label>URL <input name="url" type="url" required placeholder="https://github.com/peditx/foo"></label>
@@ -112,11 +145,14 @@
     <p class="hint" id="project-empty" hidden></p>
   </section>
 
-  <section>
-    <h2>3 · Videos</h2>
+  <section class="tab" data-tab="videos" hidden>
+    <h2>Videos</h2>
+    <p class="hint">Google will not index a video without its upload date.</p>
     <form id="video-form">
       <label>Title <input name="title" required maxlength="120" placeholder="How to install X"></label>
-      <label>YouTube ID <input name="videoId" required maxlength="11" placeholder="b2C4dGTV-wg"></label>
+      <label>YouTube ID <input name="videoId" required maxlength="11" placeholder="b2C4dGTV-wg" autocapitalize="none" spellcheck="false"></label>
+      <label>Upload date — as shown on the video page
+        <input name="pubDate" type="date" required></label>
       <img id="thumb" alt="Video thumbnail preview">
       <div class="row">
         <button type="submit" id="video-submit">Commit video</button>
@@ -129,8 +165,8 @@
     <p class="hint" id="video-empty" hidden></p>
   </section>
 
-  <section>
-    <h2>4 · New HTML page</h2>
+  <section class="tab" data-tab="pages" hidden>
+    <h2>Pages</h2>
     <form id="page-form">
       <label>Path <input name="path" maxlength="40" placeholder="ai" autocapitalize="none" spellcheck="false"></label>
       <label>File <input name="file" type="file" accept=".html,.htm,.css,.js,.json,.svg,.png,.jpg,.webp,.txt"></label>
@@ -142,34 +178,13 @@
       <code>app.js</code>…), or to replace a file you already pushed.
     </p>
   </section>
-  <section>
-    <h2>5 · Settings</h2>
-    <form id="settings-form">
-      <label>Profile image — what Google puts in the knowledge panel
-        <input name="profileImage" required maxlength="300" placeholder="/peditx.jpg" spellcheck="false" autocapitalize="none"></label>
-      <label>Website image — the preview shown when the site is shared
-        <input name="websiteImage" required maxlength="300" placeholder="/PeDitX.png" spellcheck="false" autocapitalize="none"></label>
-      <label>Logo — the brand mark (<code>WebSite.logo</code>)
-        <input name="logo" required maxlength="300" placeholder="/PeDitX.png" spellcheck="false" autocapitalize="none"></label>
-      <label>Description — one line for the knowledge panel, <code>og:description</code> and <code>meta description</code>
-        <textarea name="description" rows="2" required maxlength="300"></textarea></label>
-      <div class="thumbs">
-        <figure><img id="pv-profileImage" alt="Profile image"><figcaption>Profile</figcaption></figure>
-        <figure><img id="pv-websiteImage" alt="Website image"><figcaption>Website</figcaption></figure>
-        <figure><img id="pv-logo" alt="Logo"><figcaption>Logo</figcaption></figure>
-      </div>
-      <button type="submit">Save settings</button>
-    </form>
-    <p class="hint">
-      Three separate pictures on purpose: the knowledge panel wants a photo of the person, not the
-      logo. Each field takes a path on the site (<code>/peditx.jpg</code>) or a full URL — upload
-      the file through <b>4 · New HTML page</b> if it is not hosted yet. Saved to
-      <code>src/content/site.json</code>.
-    </p>
-  </section>
 
-  <section>
-    <h2>6 · Social links</h2>
+  <section class="tab" data-tab="links" hidden>
+    <h2>Links</h2>
+    <p class="hint">
+      These are the <code>sameAs</code> links Google uses to tie every profile to this domain —
+      the backbone of a knowledge panel.
+    </p>
     <form id="link-form">
       <label>Name <input name="name" required maxlength="60" placeholder="YouTube"></label>
       <label>URL <input name="url" type="url" required placeholder="https://youtube.com/c/peditx"></label>
@@ -184,14 +199,73 @@
       </div>
     </form>
     <p class="hint note" id="link-editing" hidden></p>
-    <p class="hint">
-      These are the <code>sameAs</code> links Google uses to tie every profile to this domain —
-      the backbone of a knowledge panel. Written to <code>src/content/links/</code>.
-    </p>
     <h3>On the site — Edit loads it into the form</h3>
     <ul class="items" id="link-items"></ul>
     <p class="hint" id="link-empty" hidden></p>
   </section>
+
+  <section class="tab" data-tab="settings" hidden>
+    <h2>Settings</h2>
+
+    <div class="card">
+      <h3>Site</h3>
+      <form id="settings-form">
+        <label>Profile image — what Google puts in the knowledge panel
+          <input name="profileImage" required maxlength="300" placeholder="/peditx.jpg" spellcheck="false" autocapitalize="none"></label>
+        <label>Website image — the preview shown when the site is shared
+          <input name="websiteImage" required maxlength="300" placeholder="/PeDitX.png" spellcheck="false" autocapitalize="none"></label>
+        <label>Logo — the brand mark (<code>WebSite.logo</code>)
+          <input name="logo" required maxlength="300" placeholder="/PeDitX.png" spellcheck="false" autocapitalize="none"></label>
+        <label>Description — one line for the knowledge panel, <code>og:description</code> and <code>meta description</code>
+          <textarea name="description" rows="2" required maxlength="300"></textarea></label>
+        <div class="thumbs">
+          <figure><img id="pv-profileImage" alt="Profile image"><figcaption>Profile</figcaption></figure>
+          <figure><img id="pv-websiteImage" alt="Website image"><figcaption>Website</figcaption></figure>
+          <figure><img id="pv-logo" alt="Logo"><figcaption>Logo</figcaption></figure>
+        </div>
+        <button type="submit">Save settings</button>
+      </form>
+      <p class="hint">
+        Three separate pictures on purpose: the knowledge panel wants a photo of the person, not the
+        logo. Each field takes a path on the site (<code>/peditx.jpg</code>) or a full URL — upload
+        the file through the <b>Pages</b> tab if it is not hosted yet. Saved to
+        <code>src/content/site.json</code>.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>GitHub token</h3>
+      <label>Fine-grained personal access token
+        <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…">
+      </label>
+      <p class="hint">
+        GitHub → Settings → Developer settings → Personal access tokens → <b>Fine-grained tokens</b> →
+        only this repository, <b>Contents: Read and write</b>. Saved in this browser only.
+        <a href="#" id="forget">Forget it</a>
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Password</h3>
+      <form id="password-form">
+        <label>New password <input name="pass" type="password" autocomplete="new-password" required></label>
+        <label>Repeat it <input name="again" type="password" autocomplete="new-password" required></label>
+        <div class="row">
+          <button type="submit">Set password</button>
+          <a href="#" class="hint" id="reset-pass">Forgot it? Reset with the GitHub token</a>
+        </div>
+      </form>
+      <p class="hint">
+        Stored in this browser only, so it guards the door rather than the server.
+        <b>Reset asks for the GitHub token first</b> — anyone at the keyboard cannot swap your
+        password back to a known one without it.
+      </p>
+    </div>
+  </section>
+
+  <footer id="credit">
+    Designed by <a href="https://peditx.ir" target="_blank" rel="noopener">PeDitX</a>
+  </footer>
 
 </main>
 
@@ -298,15 +372,22 @@
   }
 
   async function api(path, init) {
-    /* Reads stay anonymous: the repo is public, so a missing or expired
-       token must not be able to break the lists. Writes still need it. */
+    /* Reads carry the token as well: the anonymous quota is 60 requests an
+       hour and opening this panel a few times eats it. A token GitHub turns
+       down falls back to an anonymous read rather than breaking the lists. */
     const method = (init && init.method) || 'GET';
-    const headers = {
-      'X-GitHub-Api-Version': '2022-11-28',
-      Accept: 'application/vnd.github+json'
+    const go = (bearer) => {
+      const headers = {
+        'X-GitHub-Api-Version': '2022-11-28',
+        Accept: 'application/vnd.github+json'
+      };
+      if (bearer) headers.Authorization = 'Bearer ' + token();
+      return fetch(API + enc(path), Object.assign({ headers }, init));
     };
-    if (method !== 'GET' && token()) headers.Authorization = 'Bearer ' + token();
-    const res = await fetch(API + enc(path), Object.assign({ headers }, init));
+    let res = await go(!!token());
+    if (method === 'GET' && token() && (res.status === 401 || res.status === 403)) {
+      res = await go(false);
+    }
     const body = await res.json().catch(() => null);
     if (!res.ok) throw fail(res, body);
     return body;
@@ -330,11 +411,11 @@
   const SUBMIT_LABEL = { projects: 'Commit project', videos: 'Commit video', links: 'Commit link' };
   const stem = (kind) => (kind === 'projects' ? 'project' : kind === 'links' ? 'link' : 'video');
   const state = {
-    files: { projects: [], videos: [] },
+    files: { projects: [], videos: [], links: [] },
     order: { projects: [], videos: [] },
     orderLoaded: false,
-    editing: { projects: null, videos: null },
-    loaded: { projects: false, videos: false }
+    editing: { projects: null, videos: null, links: null },
+    loaded: { projects: false, videos: false, links: false }
   };
 
   async function run(form, build) {
@@ -390,8 +471,9 @@
     d.videoId = d.videoId.trim();
     if (!checkName(d.title)) return log('Title cannot be empty or contain / or \\.', 'err');
     if (!/^[\w-]{11}$/.test(d.videoId)) return log('YouTube ID must be exactly 11 characters.', 'err');
+    if (!d.pubDate) return log('Upload date is required — Google rejects the video without it.', 'err');
 
-    const values = { title: d.title.trim(), videoId: d.videoId };
+    const values = { title: d.title.trim(), videoId: d.videoId, pubDate: d.pubDate };
     const edit = state.editing.videos;
     const autoThumb = () => { values.thumbnailUrl = 'https://i.ytimg.com/vi/' + d.videoId + '/hqdefault.jpg'; };
     if (!edit) {
@@ -420,10 +502,29 @@
     if (/^[\w-]{11}$/.test(id)) {
       img.src = 'https://i.ytimg.com/vi/' + id + '/hqdefault.jpg';
       img.style.display = 'block';
+      fillTitleFrom(id);
     } else {
       img.style.display = 'none';
     }
   });
+
+  /* The date cannot be read from here — YouTube sends no CORS header for the
+     watch page — so it is typed in. The title it does share, freely. */
+  let titleAskedFor = '';
+  async function fillTitleFrom(id) {
+    const form = $('#video-form');
+    if (titleAskedFor === id) return;
+    titleAskedFor = id;
+    if (form.elements.title.value.trim()) return;
+    try {
+      const res = await fetch('https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v='
+        + id + '&format=json');
+      if (!res.ok) return;
+      const data = await res.json();
+      const t = String(data.title || '').trim();
+      if (t && !form.elements.title.value.trim()) form.elements.title.value = t.slice(0, 120);
+    } catch (e) { /* offline or blocked: type it */ }
+  }
 
   /* ── lists: read, edit, reorder ───────────────────────────────────── */
 
@@ -587,13 +688,36 @@
     });
   });
 
-  let listsStarted = false;
-  async function initLists() {
-    if (listsStarted) return;
-    listsStarted = true;
-    try { await loadOrder(); } catch (e) { /* refresh still tells us what exists */ }
-    await Promise.all([refresh('projects'), refresh('videos'), refresh('links')]);
+  /* Each tab fetches its own data the first time it is opened — loading all
+     of them up front would spend the GitHub quota before anyone asked. */
+  async function loadWithOrder(kind) {
+    if (!state.orderLoaded) {
+      try { await loadOrder(); } catch (e) { /* refresh still tells us what exists */ }
+    }
+    return refresh(kind);
   }
+
+  const TAB_KEY = 'peditx-admin-tab';
+  const LOADERS = {
+    projects: () => loadWithOrder('projects'),
+    videos: () => loadWithOrder('videos'),
+    pages: () => {},
+    links: () => refresh('links'),
+    settings: () => loadSettings()
+  };
+
+  function showTab(name) {
+    if (!LOADERS[name]) name = 'projects';
+    [...$('#tabs').children].forEach((b) => b.classList.toggle('on', b.dataset.tab === name));
+    document.querySelectorAll('main .tab').forEach((s) => { s.hidden = s.dataset.tab !== name; });
+    try { localStorage.setItem(TAB_KEY, name); } catch (e) { /* private mode */ }
+    LOADERS[name]();
+  }
+
+  $('#tabs').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button[data-tab]');
+    if (btn) showTab(btn.dataset.tab);
+  });
 
   /* ── HTML pages ──────────────────────────────────────────────────── */
 
@@ -773,6 +897,46 @@
     log('Token cleared.', 'ok');
   });
 
+  /* Reset has to prove something: anyone at the keyboard could otherwise put
+     the password back to one they know. The GitHub token is the proof — and
+     it is checked without api()'s anonymous fallback, or a bad token would
+     pass by reading the public repo anyway. */
+  async function tokenWorks() {
+    if (!token()) return false;
+    const res = await fetch(API + enc('src/content/site.json'), {
+      headers: {
+        'X-GitHub-Api-Version': '2022-11-28',
+        Accept: 'application/vnd.github+json',
+        Authorization: 'Bearer ' + token()
+      }
+    });
+    /* 404 is a valid token looking at a file that is not there yet. */
+    return res.ok || res.status === 404;
+  }
+
+  $('#password-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const fd = new FormData(ev.target);
+    const pass = String(fd.get('pass') || '');
+    if (pass.length < 8) return log('Use at least 8 characters.', 'err');
+    if (pass !== String(fd.get('again') || '')) return log('The two passwords do not match.', 'err');
+    try {
+      localStorage.setItem(AUTH_HASH_KEY, await sha256hex(pass));
+      ev.target.reset();
+      log('Password changed. It applies the next time you sign in.', 'ok');
+    } catch (e) { log(e.message, 'err'); }
+  });
+
+  $('#reset-pass').addEventListener('click', async (ev) => {
+    ev.preventDefault();
+    if (!token()) return log('Reset needs the GitHub token — fill it in on the card above first.', 'err');
+    try {
+      if (!(await tokenWorks())) return log('That token does not read this repository.', 'err');
+    } catch (e) { return log(e.message, 'err'); }
+    localStorage.removeItem(AUTH_HASH_KEY);
+    log('Password is back to the built-in one. Sign in again with it.', 'ok');
+  });
+
   $('#repo-label').textContent = REPO;
 
   /* ── sign in ──────────────────────────────────────────────────────── */
@@ -782,7 +946,15 @@
      someone reading the source. Cloudflare Access is the real lock. */
   const AUTH_KEY = 'peditx-admin-auth';
   const AUTH_USER = 'peditx';
+  /* The hash lives in localStorage so the password can be changed from the
+     panel; the constant below is only what a browser that never set one
+     starts on. */
+  const AUTH_HASH_KEY = 'peditx-admin-hash';
   const AUTH_HASH = '54aea13e1cda803f6ce475881f6bc2b0e1f8bf353925a356c895aa9d434ef53f';
+
+  function authHash() {
+    try { return localStorage.getItem(AUTH_HASH_KEY) || AUTH_HASH; } catch (e) { return AUTH_HASH; }
+  }
 
   async function sha256hex(text) {
     if (!window.crypto || !crypto.subtle) throw new Error('Sign-in needs https:// — browsers hide crypto on plain http.');
@@ -794,8 +966,17 @@
     const gate = $('#gate');
     if (gate) gate.remove();
     $('#app').hidden = false;
-    initLists();
-    loadSettings();
+    $('#topbar').hidden = false;
+    let saved = '';
+    try { saved = localStorage.getItem(TAB_KEY) || ''; } catch (e) { /* private mode */ }
+    showTab(saved);
+  }
+
+  /* PWA: installs on Android and iOS like any other app. The worker caches
+     the shell only — a stale GitHub answer would be worse than none. */
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .catch(() => { /* blocked or file:// — the panel still works */ });
   }
 
   $('#login-form').addEventListener('submit', async (ev) => {
@@ -804,7 +985,7 @@
     try {
       const user = String(fd.get('user') || '');
       const pass = String(fd.get('pass') || '');
-      if (user !== AUTH_USER || (await sha256hex(pass)) !== AUTH_HASH) {
+      if (user !== AUTH_USER || (await sha256hex(pass)) !== authHash()) {
         return log('Wrong username or password.', 'err');
       }
       localStorage.setItem(AUTH_KEY, '1');
@@ -875,7 +1056,13 @@
       ['bool stays unquoted', applyFront([], { solid: true }) === '---\nsolid: true\n---\n'],
       ['bool false stays unquoted', applyFront([], { solid: false }) === '---\nsolid: false\n---\n'],
       ['bool-looking string is quoted', applyFront([], { name: 'true' }) === '---\nname: "true"\n---\n'],
-      ['link file name', DIRS.links + '/' + 'TikTok'.replace(/\s+/g, '') + 'Link.md' === 'src/content/links/TikTokLink.md']
+      ['link file name', DIRS.links + '/' + 'TikTok'.replace(/\s+/g, '') + 'Link.md' === 'src/content/links/TikTokLink.md'],
+      /* a nav button with no loader would just silently do nothing */
+      ['every nav button has a loader', [...document.querySelectorAll('#tabs button')].every((b) => !!LOADERS[b.dataset.tab])],
+      /* dropping this field makes Google discard every video */
+      ['video form asks for the upload date', document.querySelector('#video-form [name="pubDate"]')?.type === 'date'],
+      ['every tab section has a loader', [...document.querySelectorAll('main .tab')].every((s) => !!LOADERS[s.dataset.tab])],
+      ['every loader has a section', Object.keys(LOADERS).every((k) => !!document.querySelector('main .tab[data-tab="' + k + '"]'))]
     ];
     const report = (extra) => {
       const all = checks.concat(extra);
