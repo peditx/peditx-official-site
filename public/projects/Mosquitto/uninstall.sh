@@ -1,31 +1,79 @@
 #!/bin/sh
+# ============================================================
+#  Mosquitto (MQTT) — PeDitXOS standalone uninstaller
+#  Removes only the paths this installer created. Never globs.
+# ============================================================
 
-# ==========================================
-# OpenWrt Mosquitto Uninstaller
-# ==========================================
+APP_NAME="mosquitto"
+APP_TITLE="Mosquitto (MQTT)"
 
-echo -e "\n--- Mosquitto By PeDitX ---\n"
-
-echo ">>> [1/2] Removing Container..."
-if docker ps -a --format '{{.Names}}' | grep -Eq "^mosquitto$"; then
-    docker stop mosquitto > /dev/null 2>&1
-    docker rm mosquitto > /dev/null 2>&1
-    echo "   - Container removed."
+if command -v apk >/dev/null 2>&1; then
+	PKG="apk"
+	PKG_REMOVE="apk del"
+elif command -v opkg >/dev/null 2>&1; then
+	PKG="opkg"
+	PKG_REMOVE="opkg remove"
+else
+	PKG=""
+	PKG_REMOVE=""
 fi
 
-echo ">>> [2/2] Removing Firewall Rules..."
+PKG_INSTALLED() {
+	if [ "$PKG" = "apk" ]; then
+		apk info -e "$1" >/dev/null 2>&1
+	elif [ "$PKG" = "opkg" ]; then
+		opkg status "$1" 2>/dev/null | grep -q '^Status:.*installed'
+	else
+		return 1
+	fi
+}
+
+echo
+echo ">>> Removing ${APP_TITLE}..."
+
+# --- Container ---------------------------------------------------
+if command -v docker >/dev/null 2>&1; then
+	if docker ps -a --format '{{.Names}}' | grep -qx "mosquitto"; then
+		docker stop "mosquitto" >/dev/null 2>&1
+		docker rm "mosquitto" >/dev/null 2>&1
+		echo "   - Container removed."
+	else
+		echo "   - Container not found."
+	fi
+else
+	echo "   - Docker not installed, nothing to remove."
+fi
+
+# --- Firewall rules --------------------------------------------
 FOUND=0
-for rule in $(uci show firewall | grep "name='Allow_Mosquitto'" | cut -d. -f2 | sort -u); do
-    uci delete firewall.$rule >/dev/null 2>&1
-    FOUND=1
+for rule in $(uci show firewall | grep -E "name='(Allow_Mosquitto)" | cut -d. -f2 | cut -d= -f1 | sort -u); do
+	uci -q delete firewall.$rule
+	FOUND=1
 done
-
-if [ "$FOUND" -eq 1 ]; then
-    uci commit firewall > /dev/null 2>&1
-    service firewall restart > /dev/null 2>&1
-    echo "   - Firewall rule removed."
+if [ "$FOUND" = "1" ]; then
+	uci -q commit firewall
+	/etc/init.d/firewall restart >/dev/null 2>&1
+	echo "   - Firewall rules removed."
+else
+	echo "   - No firewall rules found."
 fi
 
-echo -e "\nUninstallation Complete."
-echo "Note: Data in '/opt/mosquitto' was NOT deleted."
+# --- LuCI files owned by this installer ------------------------
+rm -f  "/usr/share/luci/menu.d/luci-app-${APP_NAME}.json"
+rm -f  "/usr/share/rpcd/acl.d/luci-app-${APP_NAME}.json"
+rm -rf "/www/luci-static/resources/view/${APP_NAME}"
+rm -f  "/usr/bin/${APP_NAME}-backend.sh"
+echo "   - LuCI page removed."
+
+# --- files left by the previous (Lua) version -------------------
+# (no Lua files from a previous version)
+
+# --- rpcd re-reads acl.d; ucode LuCI caches ---------------------
+/etc/init.d/rpcd reload >/dev/null 2>&1
+rm -f /tmp/luci-indexcache /tmp/luci-sessions/.root 2>/dev/null
+rm -rf /tmp/luci-modulecache 2>/dev/null
+
+echo "Note: broker data in /opt/mosquitto was NOT deleted."
+
+echo ">>> ${APP_TITLE} removed. Refresh your browser (and log out/in if the menu lingers)."
 echo "------------------------------------------"
