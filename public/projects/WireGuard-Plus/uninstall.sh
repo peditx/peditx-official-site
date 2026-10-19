@@ -132,13 +132,15 @@ remove_packages() {
     # luci-proto-wireguard first: it depends on wireguard-tools
     for p in luci-proto-wireguard wireguard-tools kmod-wireguard; do
         if pkg_installed "$p"; then
-            # verbose retry so a real failure (something else depends on it)
-            # is visible instead of silently skipped
-            $PKG_REMOVE "$p" >/dev/null 2>&1 || $PKG_REMOVE "$p" || {
+            $PKG_REMOVE "$p" >/dev/null 2>&1 || $PKG_REMOVE "$p"
+            # Do NOT trust the exit code — apk-tools 3.0.5 on OpenWrt 25.12
+            # reports a spurious "1 error" summary and can return non-zero
+            # on a successful removal. Re-check installed state instead.
+            if pkg_installed "$p"; then
                 echo "   - Could not remove $p (still required by another package?)"
-                continue
-            }
-            echo "   - Removed package $p"
+            else
+                echo "   - Removed package $p"
+            fi
         fi
     done
     return 0

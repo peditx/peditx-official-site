@@ -90,9 +90,19 @@ install_prereqs() {
 
     # One package at a time: apk aborts the WHOLE transaction when a single
     # name is unknown, so a batch would drop all three on one missing name.
+    #
+    # Do NOT trust the exit code. Observed on real PeDitXOS 25.12
+    # (apk-tools 3.0.5): `apk add` prints a spurious
+    # "1 error; ... MiB in ... packages" summary and can return non-zero
+    # even when the package installed fine. So: attempt once silently, then
+    # judge by INSTALLED STATE. Only retry verbosely when it genuinely did
+    # not land, so the real error is what the user sees.
     FAILED=""
     for p in $MISSING; do
-        $PKG_INSTALL "$p" >/dev/null 2>&1 || $PKG_INSTALL "$p" || FAILED="$FAILED $p"
+        $PKG_INSTALL "$p" >/dev/null 2>&1
+        pkg_installed "$p" && continue
+        $PKG_INSTALL "$p"
+        pkg_installed "$p" || FAILED="$FAILED $p"
     done
 
     if [ -n "$FAILED" ]; then
