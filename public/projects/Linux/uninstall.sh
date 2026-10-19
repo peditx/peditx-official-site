@@ -1,54 +1,85 @@
 #!/bin/sh
+# ============================================================
+#  Linux Desktop — PeDitXOS standalone uninstaller
+#  Removes only the paths this installer created. Never globs.
+# ============================================================
 
-# ==========================================
-# OpenWrt Linux Desktop Uninstaller
-# Removes Container, Firewall Rules & Menu
-# ==========================================
+APP_NAME="desktop"
+APP_TITLE="Linux Desktop"
 
-echo -e "\n--- Linux Desktop Uninstaller ---\n"
-
-echo ">>> [1/3] Removing Container..."
-# Stop and remove the container named 'desktop'
-if docker ps -a --format '{{.Names}}' | grep -Eq "^desktop$"; then
-    docker stop desktop > /dev/null 2>&1
-    docker rm desktop > /dev/null 2>&1
-    echo "   - Container removed."
+if command -v apk >/dev/null 2>&1; then
+	PKG="apk"
+	PKG_REMOVE="apk del"
+elif command -v opkg >/dev/null 2>&1; then
+	PKG="opkg"
+	PKG_REMOVE="opkg remove"
 else
-    echo "   - Container not found."
+	PKG=""
+	PKG_REMOVE=""
 fi
 
-echo ">>> [2/3] Removing UI Menu..."
-# Remove the controller and view files
+PKG_INSTALLED() {
+	if [ "$PKG" = "apk" ]; then
+		apk info -e "$1" >/dev/null 2>&1
+	elif [ "$PKG" = "opkg" ]; then
+		opkg status "$1" 2>/dev/null | grep -q '^Status:.*installed'
+	else
+		return 1
+	fi
+}
+
+echo
+echo ">>> Removing ${APP_TITLE}..."
+
+# --- Container ---------------------------------------------------
+if command -v docker >/dev/null 2>&1; then
+	if docker ps -a --format '{{.Names}}' | grep -qx "desktop"; then
+		docker stop "desktop" >/dev/null 2>&1
+		docker rm "desktop" >/dev/null 2>&1
+		echo "   - Container removed."
+	else
+		echo "   - Container not found."
+	fi
+else
+	echo "   - Docker not installed, nothing to remove."
+fi
+
+# --- Firewall rules --------------------------------------------
+FOUND=0
+for rule in $(uci show firewall | grep -E "name='(Allow_Desktop|Allow_Webtop)" | cut -d. -f2 | cut -d= -f1 | sort -u); do
+	uci -q delete firewall.$rule
+	FOUND=1
+done
+if [ "$FOUND" = "1" ]; then
+	uci -q commit firewall
+	/etc/init.d/firewall restart >/dev/null 2>&1
+	echo "   - Firewall rules removed."
+else
+	echo "   - No firewall rules found."
+fi
+
+# --- LuCI files owned by this installer ------------------------
+rm -f  "/usr/share/luci/menu.d/luci-app-${APP_NAME}.json"
+rm -f  "/usr/share/rpcd/acl.d/luci-app-${APP_NAME}.json"
+rm -rf "/www/luci-static/resources/view/${APP_NAME}"
+rm -f  "/usr/bin/${APP_NAME}-backend.sh"
+echo "   - LuCI page removed."
+
+# --- files left by the previous (Lua) version -------------------
 rm -f /usr/lib/lua/luci/controller/peditxos_desktop.lua
 rm -f /usr/lib/lua/luci/view/peditxos/desktop.htm
-
-# Also clean up any potential leftovers from previous attempts
 rm -f /usr/lib/lua/luci/controller/peditxos_webtop.lua
-rm -f /usr/lib/lua/luci/view/peditxos/webtop.htm
 rm -f /usr/lib/lua/luci/controller/peditxos_alpine.lua
+rm -f /usr/lib/lua/luci/view/peditxos/webtop.htm
 rm -f /usr/lib/lua/luci/view/peditxos/alpine.htm
+rmdir /usr/lib/lua/luci/view/peditxos 2>/dev/null
 
-# Clear LuCI cache
-rm -rf /tmp/luci-modulecache/
-rm -f /tmp/luci-indexcache
-echo "   - Menu removed."
+# --- rpcd re-reads acl.d; ucode LuCI caches ---------------------
+/etc/init.d/rpcd reload >/dev/null 2>&1
+rm -f /tmp/luci-indexcache /tmp/luci-sessions/.root 2>/dev/null
+rm -rf /tmp/luci-modulecache 2>/dev/null
 
-echo ">>> [3/3] Removing Firewall Rules..."
-FOUND=0
-# Remove rule named 'Allow_Desktop' or 'Allow_Webtop'
-for rule in $(uci show firewall | grep -E "name='Allow_(Desktop|Webtop)'" | cut -d. -f2 | cut -d= -f1 | sort -u); do
-    uci delete firewall.$rule >/dev/null 2>&1
-    FOUND=1
-done
+echo "Note: the desktop home directory in /opt/desktop/data was NOT deleted."
 
-if [ "$FOUND" -eq 1 ]; then
-    uci commit firewall > /dev/null 2>&1
-    service firewall restart > /dev/null 2>&1
-    echo "   - Firewall rule removed."
-else
-    echo "   - Firewall rule not found."
-fi
-
-echo -e "\nUninstallation Complete."
-echo "Refresh your browser."
+echo ">>> ${APP_TITLE} removed. Refresh your browser (and log out/in if the menu lingers)."
 echo "------------------------------------------"
