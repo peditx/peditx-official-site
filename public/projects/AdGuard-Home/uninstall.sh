@@ -1,67 +1,84 @@
 #!/bin/sh
+# ============================================================
+#  AdGuard Home — PeDitXOS standalone uninstaller
+#  Removes only the paths this installer created. Never globs.
+# ============================================================
 
-# Colors
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+APP_NAME="adguardhome"
+APP_TITLE="AdGuard Home"
 
-echo -e "\n--- Adguard By PeDitX (Uninstall) ---\n"
+if command -v apk >/dev/null 2>&1; then
+	PKG="apk"
+	PKG_REMOVE="apk del"
+elif command -v opkg >/dev/null 2>&1; then
+	PKG="opkg"
+	PKG_REMOVE="opkg remove"
+else
+	PKG=""
+	PKG_REMOVE=""
+fi
 
-log_step() {
-    local msg="$1"
-    shift
-    printf "%-60s" "$msg..."
-    if "$@" >/dev/null 2>&1; then
-        echo -e "${GREEN}[OK]${NC}"
-    else
-        echo -e "${RED}[FAILED]${NC}"
-    fi
+PKG_INSTALLED() {
+	if [ "$PKG" = "apk" ]; then
+		apk info -e "$1" >/dev/null 2>&1
+	elif [ "$PKG" = "opkg" ]; then
+		opkg status "$1" 2>/dev/null | grep -q '^Status:.*installed'
+	else
+		return 1
+	fi
 }
 
-echo "Uninstalling AdGuard Home & Reverting Dnsmasq-full..."
+echo
+echo ">>> Removing ${APP_TITLE}..."
 
-# 1. Stop Service
+# --- Service ------------------------------------------------------
 if [ -f /etc/init.d/adguardhome ]; then
-    log_step "Stopping AdGuard Home service" /etc/init.d/adguardhome stop
-    log_step "Disabling AdGuard Home service" /etc/init.d/adguardhome disable
-else
-    log_step "Service not running" true
+	/etc/init.d/adguardhome stop >/dev/null 2>&1
+	/etc/init.d/adguardhome disable >/dev/null 2>&1
+	echo "   - Service stopped."
 fi
 
-# 2. Remove Package (No internet needed, local removal)
-if opkg list-installed | grep -q adguardhome; then
-    log_step "Removing AdGuard Home package" opkg remove adguardhome
-else
-    log_step "Package not installed, skipping removal" true
+# --- Package -------------------------------------------------------
+if [ -n "$PKG_REMOVE" ] && PKG_INSTALLED adguardhome; then
+	$PKG_REMOVE adguardhome >/dev/null 2>&1
+	echo "   - Package removed."
 fi
 
-# 3. Revert Dnsmasq-full
-log_step "Reverting Dnsmasq-full to port 53" uci set dhcp.@dnsmasq[0].port='53'
+# --- Dnsmasq back to port 53 + ISP DNS ------------------------------
+uci -q set dhcp.@dnsmasq[0].port='53'
+uci -q delete dhcp.@dnsmasq[0].noresolv
+uci -q commit dhcp
+/etc/init.d/dnsmasq restart >/dev/null 2>&1
+echo "   - dnsmasq restored (port 53, ISP DNS)."
 
-# CRITICAL FIX: Re-enable ISP DNS usage so internet works after uninstall
-log_step "Re-enabling ISP DNS resolving" uci -q delete dhcp.@dnsmasq[0].noresolv
-
-log_step "Committing DHCP changes" uci commit dhcp
-
-# 4. Remove Firewall Rule
-if uci get firewall.AdGuardHomeWeb >/dev/null 2>&1; then
-    log_step "Removing Firewall rules" uci delete firewall.AdGuardHomeWeb
-    log_step "Committing Firewall changes" uci commit firewall
-else
-    log_step "Firewall rule already removed" true
+# --- Firewall -------------------------------------------------------
+if uci -q get firewall.AdGuardHomeWeb >/dev/null 2>&1; then
+	uci -q delete firewall.AdGuardHomeWeb
+	uci -q commit firewall
+	/etc/init.d/firewall restart >/dev/null 2>&1
+	echo "   - Firewall rule removed."
 fi
 
-# 5. Clean Files
-cleanup_files() {
-    rm -f /etc/adguardhome.yaml
-    rm -rf /var/adguardhome
-    rm -rf /usr/bin/AdGuardHome
-}
-log_step "Cleaning up configuration and data files" cleanup_files
+# --- Config ----------------------------------------------------------
+rm -f /etc/adguardhome.yaml
+echo "   - Configuration removed."
 
-# 6. Restart Services
-log_step "Restarting Dnsmasq-full (Restoring Network)" /etc/init.d/dnsmasq restart
-log_step "Restarting Firewall" /etc/init.d/firewall restart
+# --- LuCI files owned by this installer ------------------------
+rm -f  "/usr/share/luci/menu.d/luci-app-${APP_NAME}.json"
+rm -f  "/usr/share/rpcd/acl.d/luci-app-${APP_NAME}.json"
+rm -rf "/www/luci-static/resources/view/${APP_NAME}"
+rm -f  "/usr/bin/${APP_NAME}-backend.sh"
+echo "   - LuCI page removed."
 
-echo -e "\n${GREEN}Uninstallation Complete.${NC}"
-echo "System restored to default Passwall/Dnsmasq state."
+# --- files left by the previous (Lua) version -------------------
+# (no Lua files from a previous version)
+
+# --- rpcd re-reads acl.d; ucode LuCI caches ---------------------
+/etc/init.d/rpcd reload >/dev/null 2>&1
+rm -f /tmp/luci-indexcache /tmp/luci-sessions/.root 2>/dev/null
+rm -rf /tmp/luci-modulecache 2>/dev/null
+
+echo "Note: DNS settings were restored to the stock dnsmasq state."
+
+echo ">>> ${APP_TITLE} removed. Refresh your browser (and log out/in if the menu lingers)."
+echo "------------------------------------------"
