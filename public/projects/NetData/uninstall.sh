@@ -1,51 +1,79 @@
 #!/bin/sh
+# ============================================================
+#  NetData — PeDitXOS standalone uninstaller
+#  Removes only the paths this installer created. Never globs.
+# ============================================================
 
-# ==========================================
-# OpenWrt Netdata Uninstaller (Native + UI)
-# Removes Package, Firewall Rules & UI Menu
-# ==========================================
+APP_NAME="netdata"
+APP_TITLE="NetData"
 
-echo -e "\n--- Netdata Native Uninstaller ---\n"
-
-echo ">>> [1/3] Removing Netdata Package..."
-# Stop and disable service
-service netdata stop >/dev/null 2>&1
-service netdata disable >/dev/null 2>&1
-
-# Remove package and config directory
-opkg remove netdata >/dev/null 2>&1
-rm -rf /etc/netdata >/dev/null 2>&1
-echo "   - Package removed."
-
-echo ">>> [2/3] Removing UI Menu..."
-# Remove the controller and view files we created
-rm -f /usr/lib/lua/luci/controller/peditxos_netdata.lua
-rm -f /usr/lib/lua/luci/view/peditxos/netdata.htm
-
-# Remove the directory if it's empty
-rmdir /usr/lib/lua/luci/view/peditxos 2>/dev/null
-
-# Clear LuCI cache so the menu disappears immediately
-rm -rf /tmp/luci-modulecache/
-rm -f /tmp/luci-indexcache
-echo "   - Menu removed."
-
-echo ">>> [3/3] Removing Firewall Rules..."
-FOUND=0
-# Find and remove the specific rule
-for rule in $(uci show firewall | grep "name='Allow_Netdata'" | cut -d. -f2 | cut -d= -f1 | sort -u); do
-    uci delete firewall.$rule >/dev/null 2>&1
-    FOUND=1
-done
-
-if [ "$FOUND" -eq 1 ]; then
-    uci commit firewall > /dev/null 2>&1
-    service firewall restart > /dev/null 2>&1
-    echo "   - Firewall rule removed."
+if command -v apk >/dev/null 2>&1; then
+	PKG="apk"
+	PKG_REMOVE="apk del"
+elif command -v opkg >/dev/null 2>&1; then
+	PKG="opkg"
+	PKG_REMOVE="opkg remove"
 else
-    echo "   - Firewall rule not found."
+	PKG=""
+	PKG_REMOVE=""
 fi
 
-echo -e "\nUninstallation Complete."
-echo "Refresh your browser to see the menu gone."
+PKG_INSTALLED() {
+	if [ "$PKG" = "apk" ]; then
+		apk info -e "$1" >/dev/null 2>&1
+	elif [ "$PKG" = "opkg" ]; then
+		opkg status "$1" 2>/dev/null | grep -q '^Status:.*installed'
+	else
+		return 1
+	fi
+}
+
+echo
+echo ">>> Removing ${APP_TITLE}..."
+
+# --- Service ------------------------------------------------------
+if [ -f /etc/init.d/netdata ]; then
+	/etc/init.d/netdata stop >/dev/null 2>&1
+	/etc/init.d/netdata disable >/dev/null 2>&1
+	echo "   - Service stopped."
+fi
+if [ -n "$PKG_REMOVE" ]; then
+	$PKG_REMOVE netdata >/dev/null 2>&1
+	echo "   - Package removed."
+fi
+
+# --- Firewall rules --------------------------------------------
+FOUND=0
+for rule in $(uci show firewall | grep -E "name='(Allow_Netdata)" | cut -d. -f2 | cut -d= -f1 | sort -u); do
+	uci -q delete firewall.$rule
+	FOUND=1
+done
+if [ "$FOUND" = "1" ]; then
+	uci -q commit firewall
+	/etc/init.d/firewall restart >/dev/null 2>&1
+	echo "   - Firewall rules removed."
+else
+	echo "   - No firewall rules found."
+fi
+
+# --- LuCI files owned by this installer ------------------------
+rm -f  "/usr/share/luci/menu.d/luci-app-${APP_NAME}.json"
+rm -f  "/usr/share/rpcd/acl.d/luci-app-${APP_NAME}.json"
+rm -rf "/www/luci-static/resources/view/${APP_NAME}"
+rm -f  "/usr/bin/${APP_NAME}-backend.sh"
+echo "   - LuCI page removed."
+
+# --- files left by the previous (Lua) version -------------------
+rm -f /usr/lib/lua/luci/controller/peditxos_netdata.lua
+rm -f /usr/lib/lua/luci/view/peditxos/netdata.htm
+rmdir /usr/lib/lua/luci/view/peditxos 2>/dev/null
+
+# --- rpcd re-reads acl.d; ucode LuCI caches ---------------------
+/etc/init.d/rpcd reload >/dev/null 2>&1
+rm -f /tmp/luci-indexcache /tmp/luci-sessions/.root 2>/dev/null
+rm -rf /tmp/luci-modulecache 2>/dev/null
+
+echo "Note: /etc/netdata was removed with the package."
+
+echo ">>> ${APP_TITLE} removed. Refresh your browser (and log out/in if the menu lingers)."
 echo "------------------------------------------"
