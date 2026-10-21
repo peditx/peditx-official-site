@@ -752,7 +752,7 @@
      wants a photo of the person, the social preview and the logo want the
      brand. */
   const SETTINGS_IMAGES = ['profileImage', 'websiteImage', 'logo'];
-  const SITE = 'https://codes.peditx.ir';
+  const SITE = 'https://peditx.ir';
 
   /* A path on the site or a full http(s) URL. Protocol-relative (//host) is
      turned away on purpose: an image must name its host. */
@@ -1050,7 +1050,7 @@
       ['admin is reserved', RESERVED.indexOf('admin') !== -1],
       ['plain dir allowed', RESERVED.indexOf('ai') === -1],
       ['image accepts path', checkImage('/PeDitX.png')],
-      ['image accepts url', checkImage('https://codes.peditx.ir/PeDitX.png')],
+      ['image accepts url', checkImage('https://peditx.ir/PeDitX.png')],
       ['image rejects bare name', !checkImage('PeDitX.png')],
       ['image rejects protocol-relative', !checkImage('//evil.com/x.png')],
       ['bool stays unquoted', applyFront([], { solid: true }) === '---\nsolid: true\n---\n'],

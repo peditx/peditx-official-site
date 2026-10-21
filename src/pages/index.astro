@@ -44,7 +44,7 @@ const sections = [
    ties every profile to this domain. VideoObject is what earns video rich
    results. Everything is derived from the collections so the panel never has
    to touch this file. */
-const siteUrl = 'https://codes.peditx.ir';
+const siteUrl = 'https://peditx.ir';
 /* site.json is edited from the panel. Three different pictures on purpose:
    the knowledge panel wants a photo of the person, the social preview wants
    the brand, and WebSite.logo wants the mark itself. */
@@ -78,7 +78,7 @@ const personSchema = {
   /* The same five titles profile.json leads with — one list, one order, so
      the schema, the <title> tag and the hero can never drift apart. */
   jobTitle: ['YouTuber', 'Musician', 'Developer', 'Creator', 'Actor'],
-  url: 'https://codes.peditx.ir',
+  url: siteUrl,
   description: site.description,
   image: profileImage,
   sameAs: [...links.map((l) => l.data.url), ...privateSameAs],

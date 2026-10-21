@@ -5,7 +5,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-const site = 'https://codes.peditx.ir';
+const site = 'https://peditx.ir';
 
 /* A directory counts as a page only when it carries an index.html, which is
    exactly what the panel writes. /admin/ is disallowed in robots.txt, so it

@@ -1,7 +1,7 @@
 {
   "name": "PeDitX Admin",
   "short_name": "PeDitX",
-  "description": "Manage the content of codes.peditx.ir",
+  "description": "Manage the content of peditx.ir",
   "start_url": "/admin/",
   "scope": "/admin/",
   "display": "standalone",

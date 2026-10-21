@@ -6,7 +6,7 @@ const body = [
   'Allow: /',
   'Disallow: /admin/',
   '',
-  'Sitemap: https://codes.peditx.ir/sitemap.xml',
+  'Sitemap: https://peditx.ir/sitemap.xml',
   '',
 ].join('\n');
 
