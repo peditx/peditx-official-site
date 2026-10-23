@@ -192,7 +192,25 @@ reload_services() {
     /etc/init.d/firewall reload >/dev/null 2>&1
 }
 
+# --- 6. OpenVPN Service ---
+# Enable at boot so tun0 survives reboot; start if a client config already
+# exists (luci-app-openvpn creates a placeholder custom_config pointing at
+# /etc/openvpn/my-vpn.conf, which is empty until the user uploads a real one).
+openvpn_service() {
+    if [ -x /etc/init.d/openvpn ]; then
+        /etc/init.d/openvpn enable >/dev/null 2>&1
+        # Start only if a real config exists; otherwise nothing to connect to.
+        if [ -f /etc/openvpn/my-vpn.conf ] || ls /etc/openvpn/*.ovpn >/dev/null 2>&1; then
+            /etc/init.d/openvpn start >/dev/null 2>&1
+        fi
+        return 0
+    fi
+    return 1
+}
+
 reload_services
 report_status $? "Service Reload"
+openvpn_service >/dev/null 2>&1
+report_status $? "OpenVPN Service"
 
-printf '\nℹ️  Next Step: Go to VPN -> OpenVPN and upload your .ovpn config file.\n'
+printf '\nℹ️  Next Step: Upload your .ovpn config to VPN -> OpenVPN, then the tunnel starts automatically.\n'
