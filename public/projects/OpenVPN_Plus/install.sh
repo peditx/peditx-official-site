@@ -196,9 +196,12 @@ reload_services() {
 # Enable at boot so tun0 survives reboot; start if a client config already
 # exists (luci-app-openvpn creates a placeholder custom_config pointing at
 # /etc/openvpn/my-vpn.conf, which is empty until the user uploads a real one).
+# route_nopull=1 → ترافیک خود روتر (wget، opkg، SSH، DNS) از WAN می‌رود، نه تونل VPN.
 openvpn_service() {
     if [ -x /etc/init.d/openvpn ]; then
         /etc/init.d/openvpn enable >/dev/null 2>&1
+        uci -q set openvpn.myvpn.route_nopull='1'
+        uci commit openvpn
         # Start only if a real config exists; otherwise nothing to connect to.
         if [ -f /etc/openvpn/my-vpn.conf ] || ls /etc/openvpn/*.ovpn >/dev/null 2>&1; then
             /etc/init.d/openvpn start >/dev/null 2>&1
